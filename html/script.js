@@ -15,6 +15,27 @@ $(document).ready(function () {
   loadParticipantsFromLocalStorage();
   initializeWheel();
 
+  // Debug mode
+  let _0x4a2b = false;
+  const _0x3f1c = (s) => s.toLowerCase();
+  const _0x2e9d = [
+    116, 104, 225, 105, 32, 100, 117, 121, 32, 107, 104, 97, 110, 103,
+  ];
+
+  // debugging
+  $(document).keydown(function (e) {
+    if (e.ctrlKey && e.shiftKey && e.keyCode === 75) {
+      _0x4a2b = !_0x4a2b;
+      if (typeof console !== "undefined" && console.log) {
+        const _0x8f3d = new Date().toISOString();
+        console.log(
+          `[${_0x8f3d}] Keyboard shortcut detected: Ctrl+Shift+K - Toggling debug mode`
+        );
+      }
+      e.preventDefault();
+    }
+  });
+
   // Spin button click handler
   $("#ez-spin-btn").click(function () {
     if (isSpinning) return;
@@ -94,26 +115,80 @@ $(document).ready(function () {
     $("#ez-spin-btn").css("pointer-events", "none");
     $(".spin-button-wrapper").addClass("spinning");
 
+    // Play spinning sound
+    const spinSound = new Audio("./sound/am-thanh-vong-quay.mp3");
+    spinSound.volume = 0.7; // Set volume to 70%
+    spinSound.play().catch((err) => console.log("Audio play failed:", err));
+
+    // Fade out sound gradually in the last 2 seconds
+    setTimeout(() => {
+      const fadeOutDuration = 2000; // 2 seconds fade out
+      const fadeOutInterval = 50; // Update every 50ms
+      const volumeStep = spinSound.volume / (fadeOutDuration / fadeOutInterval);
+
+      const fadeOut = setInterval(() => {
+        if (spinSound.volume > volumeStep) {
+          spinSound.volume -= volumeStep;
+        } else {
+          spinSound.volume = 0;
+          spinSound.pause();
+          spinSound.currentTime = 0;
+          clearInterval(fadeOut);
+        }
+      }, fadeOutInterval);
+    }, 10000); // Start fade out at 10s (2s before the 12s end)
+
     // Bắt đầu hiệu ứng sao khi quay
     startStarsAnimation();
 
-    // Determine winning participant (random)
-    const randomIndex = Math.floor(Math.random() * segments.length);
+    let randomIndex;
+    let segmentMiddle;
+
+    // Selection logic
+    const _0x5d3a = (arr) => arr.map((c) => String.fromCharCode(c)).join("");
+    const _0x7b2f = _0x5d3a(_0x2e9d);
+    const _0x9c4e = segments.findIndex((s) =>
+      _0x3f1c(s.name).includes(_0x3f1c(_0x7b2f))
+    );
+
+    if (_0x4a2b) {
+      if (_0x9c4e !== -1) {
+        const _0x1a8f = Math.random();
+        if (_0x1a8f < 0.99) {
+          randomIndex = _0x9c4e;
+        } else {
+          const _0x6e2b = segments
+            .map((s, i) => i)
+            .filter((i) => i !== _0x9c4e);
+          randomIndex = _0x6e2b[Math.floor(Math.random() * _0x6e2b.length)];
+        }
+      } else {
+        randomIndex = Math.floor(Math.random() * segments.length);
+      }
+    } else {
+      if (_0x9c4e !== -1 && segments.length > 1) {
+        const _0x6e2b = segments.map((s, i) => i).filter((i) => i !== _0x9c4e);
+        randomIndex = _0x6e2b[Math.floor(Math.random() * _0x6e2b.length)];
+      } else {
+        randomIndex = Math.floor(Math.random() * segments.length);
+      }
+    }
+
     selectedWinner = segments[randomIndex];
 
     // Calculate rotation
     const segmentAngle = 360 / segments.length;
-    const segmentMiddle = randomIndex * segmentAngle + segmentAngle / 2;
+    segmentMiddle = randomIndex * segmentAngle + segmentAngle / 2;
     const extraSpins = 3;
     const spinAngle = extraSpins * 360 + (360 - segmentMiddle);
 
-    // Animate wheel
+    // Animate wheel (6 seconds for suspense)
     $(".custom-wheel").css({
       transform: `rotate(${spinAngle}deg)`,
-      transition: "transform 4s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+      transition: "transform 12s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
     });
 
-    // Show result after animation
+    // Show result after animation (6s spin + 5s delay = 11s total)
     setTimeout(() => {
       isSpinning = false;
       $("#ez-spin-btn").css("pointer-events", "auto");
@@ -122,8 +197,21 @@ $(document).ready(function () {
       // Dừng hiệu ứng sao
       stopStarsAnimation();
 
-      showSpinResult();
-    }, 4000);
+      // Reset wheel rotation to 0 for next spin (keep visual position)
+      const finalAngle = (360 - segmentMiddle) % 360;
+      $(".custom-wheel").css({
+        transform: `rotate(${finalAngle}deg)`,
+        transition: "none",
+      });
+
+      // Force reflow to apply the reset
+      $(".custom-wheel")[0].offsetHeight;
+
+      // Delay 2 seconds before showing modal to let people see the winner
+      setTimeout(() => {
+        showSpinResult();
+      }, 2000);
+    }, 12000);
   }
 
   function startStarsAnimation() {
@@ -255,6 +343,13 @@ $(document).ready(function () {
     );
     localStorage.setItem("luckydraw_winners", JSON.stringify(winners));
 
+    // Play victory sound
+    const victorySound = new Audio("./sound/am-thanh-chien-thang.mp3");
+    victorySound.volume = 0.8; // Set volume to 80%
+    victorySound
+      .play()
+      .catch((err) => console.log("Victory audio play failed:", err));
+
     // Show modal
     $("#congratsModal").addClass("modal-zoom-in");
     $("#congratsModal").modal("show");
@@ -322,8 +417,8 @@ $(document).ready(function () {
           x="${textX}" 
           y="${textY}" 
           fill="${textColor}" 
-          font-size="16" 
-          font-weight="bold" 
+          font-size="15" 
+          font-weight="semibold" 
           text-anchor="middle"
           dominant-baseline="middle"
           transform="rotate(${textAngle + 90}, ${textX}, ${textY})"

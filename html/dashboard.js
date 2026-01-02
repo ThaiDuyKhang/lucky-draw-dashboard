@@ -23,20 +23,50 @@ $(document).ready(function () {
     deleteParticipant(participantId);
   });
 
+  // Event delegation for delete winner buttons
+  $("#winners-list").on("click", ".btn-delete-winner", function () {
+    const winnerIndex = parseInt($(this).data("index"));
+    deleteWinner(winnerIndex);
+  });
+
   $("#clear-all-participants").click(function () {
-    if (confirm("Bạn có chắc muốn xóa tất cả người tham dự?")) {
+    if (confirm("Bạn có chắc muốn xóa tất cả người tham dự ?")) {
       clearAllParticipants();
     }
   });
 
   $("#clear-all-winners").click(function () {
-    if (confirm("Bạn có chắc muốn xóa tất cả người trúng thưởng?")) {
-      clearAllWinners();
+    if (winners.length === 0) {
+      showToast("Không có người trúng thưởng nào để xóa", "warning");
+      return;
     }
+
+    // Update modal content
+    $("#all-winners-count").text(winners.length);
+
+    // Show modal
+    const modal = new bootstrap.Modal(
+      document.getElementById("clearAllWinnersModal")
+    );
+    modal.show();
   });
 
   $("#sync-data").click(function () {
     syncDataToServer();
+  });
+
+  // CSV Import handlers
+  $("#import-csv-btn").click(function () {
+    $("#csv-file-input").click();
+  });
+
+  $("#csv-file-input").change(function (e) {
+    const file = e.target.files[0];
+    if (file) {
+      importCSV(file);
+    }
+    // Reset input so same file can be selected again
+    $(this).val("");
   });
 
   // ==================== CORE FUNCTIONS ====================
@@ -75,13 +105,203 @@ $(document).ready(function () {
   }
 
   function deleteParticipant(id) {
-    if (confirm("Bạn có chắc muốn xóa người này?")) {
+    if (confirm("Bạn có chắc muốn xóa người này ?")) {
       const participant = participants.find((p) => p.id === id);
       participants = participants.filter((p) => p.id !== id);
       saveDataToLocalStorage();
       renderParticipants();
       showToast("Đã xóa: " + participant.name, "info");
     }
+  }
+
+  function deleteWinner(index) {
+    const winner = winners[index];
+
+    // Store current winner index for modal actions
+    window.currentWinnerIndex = index;
+
+    // Update modal content
+    $("#winner-name-modal").text(winner.name);
+
+    // Show modal
+    const modal = new bootstrap.Modal(
+      document.getElementById("deleteWinnerModal")
+    );
+    modal.show();
+  }
+
+  // Modal button handlers
+  $("#restore-winner-btn").click(function () {
+    const index = window.currentWinnerIndex;
+    const winner = winners[index];
+
+    // Remove from winners list
+    winners.splice(index, 1);
+
+    // Find and restore participant to active status
+    const participant = participants.find((p) => p.id === winner.id);
+    if (participant) {
+      participant.status = "active";
+    }
+
+    // Save and render
+    saveDataToLocalStorage();
+    renderWinners();
+    renderParticipants();
+    showToast("Đã chuyển về danh sách tham dự: " + winner.name, "success");
+
+    // Close modal
+    bootstrap.Modal.getInstance(
+      document.getElementById("deleteWinnerModal")
+    ).hide();
+  });
+
+  $("#delete-winner-btn").click(function () {
+    const index = window.currentWinnerIndex;
+    const winner = winners[index];
+
+    // Remove from winners list
+    winners.splice(index, 1);
+
+    // Also remove from participants completely
+    participants = participants.filter((p) => p.id !== winner.id);
+
+    // Save and render
+    saveDataToLocalStorage();
+    renderWinners();
+    renderParticipants();
+    showToast("Đã xóa hoàn toàn: " + winner.name, "info");
+
+    // Close modal
+    bootstrap.Modal.getInstance(
+      document.getElementById("deleteWinnerModal")
+    ).hide();
+  });
+
+  // Clear all winners modal button handlers
+  $("#restore-all-winners-btn").click(function () {
+    // Restore all winners to participants
+    winners.forEach((winner) => {
+      const participant = participants.find((p) => p.id === winner.id);
+      if (participant) {
+        participant.status = "active";
+      }
+    });
+
+    // Clear winners list
+    winners = [];
+
+    // Save and render
+    saveDataToLocalStorage();
+    renderWinners();
+    renderParticipants();
+    showToast("Đã chuyển tất cả về danh sách tham dự", "success");
+
+    // Close modal
+    bootstrap.Modal.getInstance(
+      document.getElementById("clearAllWinnersModal")
+    ).hide();
+  });
+
+  $("#delete-all-winners-btn").click(function () {
+    // Remove all winners from participants completely
+    const winnerIds = winners.map((w) => w.id);
+    participants = participants.filter((p) => !winnerIds.includes(p.id));
+
+    // Clear winners list
+    winners = [];
+
+    // Save and render
+    saveDataToLocalStorage();
+    renderWinners();
+    renderParticipants();
+    showToast("Đã xóa hoàn toàn tất cả người trúng thưởng", "info");
+
+    // Close modal
+    bootstrap.Modal.getInstance(
+      document.getElementById("clearAllWinnersModal")
+    ).hide();
+  });
+
+  function importCSV(file) {
+    // Check file type
+    if (!file.name.endsWith(".csv")) {
+      showToast("Vui lòng chọn file CSV", "danger");
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = function (e) {
+      const content = e.target.result;
+      const lines = content.split(/\r?\n/);
+
+      let addedCount = 0;
+      let duplicateCount = 0;
+      let emptyCount = 0;
+
+      lines.forEach((line) => {
+        let name = line.trim();
+
+        // Remove surrounding quotes if present
+        if (
+          (name.startsWith('"') && name.endsWith('"')) ||
+          (name.startsWith("'") && name.endsWith("'"))
+        ) {
+          name = name.slice(1, -1);
+        }
+
+        // Skip empty lines
+        if (name === "") {
+          emptyCount++;
+          return;
+        }
+
+        // Check for duplicates (case-insensitive)
+        if (
+          participants.some((p) => p.name.toLowerCase() === name.toLowerCase())
+        ) {
+          duplicateCount++;
+          return;
+        }
+
+        // Add participant
+        const participant = {
+          id: Date.now() + addedCount, // Ensure unique IDs
+          name: name,
+          createdDate: new Date().toISOString(),
+          status: "active",
+        };
+
+        participants.push(participant);
+        addedCount++;
+      });
+
+      // Save and render
+      if (addedCount > 0) {
+        saveDataToLocalStorage();
+        renderParticipants();
+      }
+
+      // Show summary
+      let message = `Import hoàn tất: ${addedCount} người được thêm`;
+      if (duplicateCount > 0) {
+        message += `, ${duplicateCount} trùng lặp`;
+      }
+      if (emptyCount > 0 && emptyCount > 1) {
+        // Don't count single trailing newline
+        message += `, ${emptyCount - 1} dòng trống`;
+      }
+
+      const toastType = addedCount > 0 ? "success" : "warning";
+      showToast(message, toastType);
+    };
+
+    reader.onerror = function () {
+      showToast("Lỗi khi đọc file CSV", "danger");
+    };
+
+    reader.readAsText(file, "UTF-8");
   }
 
   function clearAllParticipants() {
@@ -99,7 +319,7 @@ $(document).ready(function () {
   }
 
   function renderParticipants() {
-    const container = $("#participants-list");
+    const container = $("#participants-list tbody");
     const activeParticipants = participants.filter(
       (p) => p.status === "active"
     );
@@ -108,10 +328,11 @@ $(document).ready(function () {
 
     if (activeParticipants.length === 0) {
       container.html(`
-        <div class="text-center text-muted py-4">
-          <p>Chưa có người tham dú nào</p>
-          <small>Thêm người tham dú để bắt đầu</small>
-        </div>
+        <tr>
+          <td colspan="3" class="text-center text-muted py-4">
+            <p>Chưa có người tham dự</p>
+          </td>
+        </tr>
       `);
       return;
     }
@@ -119,15 +340,17 @@ $(document).ready(function () {
     let html = "";
     activeParticipants.forEach((participant, index) => {
       html += `
-        <div class="participant-item">
-          <span class="participant-id">#${index + 1}</span>
-          <span class="participant-name">${escapeHtml(participant.name)}</span>
-          <button type="button" class="btn btn-sm btn-outline-danger btn-delete" data-id="${
-            participant.id
-          }">
-            <i class="bi bi-trash"></i>
-          </button>
-        </div>
+        <tr class="participant-item">
+          <td class="participant-id" style="width: 50px;">${index + 1}</td>
+          <td class="participant-name">${escapeHtml(participant.name)}</td>
+          <td style="width: 80px; text-align: right;">
+            <button type="button" class="btn btn-sm btn-outline-danger btn-delete" data-id="${
+              participant.id
+            }">
+              <i class="bi bi-trash"></i>
+            </button>
+          </td>
+        </tr>
       `;
     });
 
@@ -143,7 +366,6 @@ $(document).ready(function () {
       container.html(`
         <div class="text-center text-muted py-4">
           <p>Chưa có người trúng thưởng</p>
-          <small>Quay vòng quay để chọn người trúng</small>
         </div>
       `);
       return;
@@ -151,14 +373,18 @@ $(document).ready(function () {
 
     let html = "";
     winners.forEach((winner, index) => {
-      const winTime = new Date(winner.winTime);
-      const timeStr = formatDateTime(winTime);
+      // const winTime = new Date(winner.winTime);
+      // const timeStr = formatDateTime(winTime);
 
       html += `
         <div class="winner-item">
-          <span class="winner-badge">#${index + 1}</span>
+          <span class="winner-badge"><i class="bi bi-trophy-fill"></i> #${
+            index + 1
+          }</span>
           <span class="winner-name">${escapeHtml(winner.name)}</span>
-          <span class="winner-time">${timeStr}</span>
+          <button type="button" class="btn btn-sm btn-outline-danger btn-delete-winner" data-index="${index}">
+            <i class="bi bi-trash"></i>
+          </button>
         </div>
       `;
     });
@@ -307,4 +533,12 @@ $(document).ready(function () {
     }
   `;
   document.head.appendChild(style);
+
+  //Enable Tooltip Bootstrap
+  const tooltipTriggerList = document.querySelectorAll(
+    '[data-bs-toggle="tooltip"]'
+  );
+  const tooltipList = [...tooltipTriggerList].map(
+    (tooltipTriggerEl) => new bootstrap.Tooltip(tooltipTriggerEl)
+  );
 });

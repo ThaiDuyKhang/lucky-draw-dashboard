@@ -2,6 +2,7 @@
     --color-primary: #3dd397;
     --color-green: #246d4b;
     --color-light-green: #f3ffe1;
+    --color-text: #141414;
 }
 
 body {
@@ -13,13 +14,6 @@ body {
     min-height: 100vh;
 }
 
-.dashboard-title {
-    color: var(--color-green);
-    font-weight: 700;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
-    margin-bottom: 10px;
-}
-
 .card {
     border-radius: 15px;
     border: none;
@@ -29,41 +23,71 @@ body {
 .card-header {
     font-weight: 600;
     padding: 15px 20px;
+    background: var(--color-green);
 }
 
 .card-body {
     padding: 20px;
 }
 
-/* Participant List Item */
-.participant-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 15px;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    margin-bottom: 8px;
-    background: white;
-    transition: all 0.3s ease;
+.form-control:focus {
+    border-color: #54f3b6;
+    outline: 0;
+    box-shadow: 0 0 0 .25rem rgba(12, 187, 85, 0.25);
 }
 
-.participant-item:hover {
-    background: var(--color-light-green);
-    transform: translateX(5px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+.btn-outline-danger.btn-delete,
+.btn-outline-danger.btn-delete-winner {
+    --bs-btn-border-color: transparent !important
+}
+
+.btn-add-participant,
+.btn-return {
+    background-color: var(--color-green);
+    color: #fff;
+}
+
+.btn-add-participant:hover,
+.btn-return:hover {
+    background-color: #154931;
+    color: #fff;
+}
+
+/* Participant List Item */
+#participants-list {
+    margin-bottom: 0;
+}
+
+#participants-list tbody td {
+    border-bottom: 1px dashed #e6e6e6;
+}
+
+#participants-list tbody tr:last-child {
+    border-bottom: 0px solid transparent !important;
+}
+
+#participants-list tbody tr:last-child td {
+    border-bottom: 0px solid transparent !important;
+}
+
+#participants-list tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+#participants-list tbody tr:hover .participant-id,
+#participants-list tbody tr:hover .participant-name {
+    color: var(--color-green);
+    font-weight: 500;
 }
 
 .participant-name {
-    font-weight: 500;
-    color: var(--color-green);
-    flex-grow: 1;
+    font-weight: 400;
+    color: var(--color-text);
 }
 
 .participant-id {
     font-size: 0.85rem;
     color: #999;
-    margin-right: 10px;
 }
 
 .btn-delete {
@@ -76,9 +100,9 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 15px;
+    padding: 10px 15px;
     border: 1px solid #ffc107;
-    border-radius: 8px;
+    border-radius: 6px;
     margin-bottom: 8px;
     background: #fffbf0;
     transition: all 0.3s ease;
@@ -86,12 +110,12 @@ body {
 
 .winner-item:hover {
     background: #fff9e6;
-    box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
+    box-shadow: 0 2px 8px rgb(131 77 9 / 22%);
 }
 
 .winner-name {
     font-weight: 600;
-    color: #d97706;
+    color: var(--color-text);
     flex-grow: 1;
 }
 
@@ -101,10 +125,10 @@ body {
 }
 
 .winner-badge {
-    background: #ffc107;
-    color: #000;
+    background: #ffedb6;
+    color: #d97706;
     padding: 4px 10px;
-    border-radius: 12px;
+    border-radius: 3px;
     font-size: 0.8rem;
     font-weight: 600;
     margin-right: 10px;
