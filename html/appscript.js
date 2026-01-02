@@ -1,8 +1,8 @@
 // Hàm GET để trả về giao diện
 function doGet() {
-  return HtmlService.createHtmlOutputFromFile('index')
-    .setTitle('Vòng Quay May Mắn')
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+  return HtmlService.createHtmlOutputFromFile("index")
+    .setTitle("Vòng Quay May Mắn")
+    .addMetaTag("viewport", "width=device-width, initial-scale=1");
 }
 
 // Tạo mã giảm giá unique
@@ -16,7 +16,7 @@ function generateDiscountCode(discountPercentage) {
 function sendDiscountEmail(email, fullname, discountCode, discountPercentage) {
   try {
     console.log("Gửi email đến:", email);
-    
+
     // Validation cơ bản
     if (!email || !fullname || !discountCode || !discountPercentage) {
       return false;
@@ -24,7 +24,7 @@ function sendDiscountEmail(email, fullname, discountCode, discountPercentage) {
 
     // Tạo chủ đề email
     const subject = "🎁 Mã giảm giá từ Vòng quay may mắn EZtech ";
-    
+
     // Tạo nội dung HTML cho email với thiết kế coupon
     const htmlBody = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px; background: #fff;">
@@ -63,7 +63,7 @@ function sendDiscountEmail(email, fullname, discountCode, discountPercentage) {
         </div>
       </div>
     `;
-    
+
     // Gửi email
     MailApp.sendEmail({
       to: email,
@@ -71,10 +71,9 @@ function sendDiscountEmail(email, fullname, discountCode, discountPercentage) {
       htmlBody: htmlBody,
       name: "Eztech.vn - VPS, Hosting, Cho thuê chỗ đặt & máy chủ vật lý, Server GPU",
     });
-    
+
     console.log("Gửi email thành công!");
     return true;
-    
   } catch (error) {
     console.error("Lỗi khi gửi email:", error.message);
     return false;
@@ -85,9 +84,9 @@ function sendDiscountEmail(email, fullname, discountCode, discountPercentage) {
 function doPost(e) {
   try {
     console.log("=== XỬ LÝ REQUEST ===");
-    
+
     let data;
-    
+
     // Xử lý dữ liệu đầu vào
     if (e.postData && e.postData.contents) {
       console.log("Processing JSON data");
@@ -97,79 +96,89 @@ function doPost(e) {
       data = {
         fullname: e.parameter.fullname,
         email: e.parameter.email,
-        discountPercentage: parseInt(e.parameter.discountPercentage)
+        discountPercentage: parseInt(e.parameter.discountPercentage),
       };
     } else {
-      throw new Error('Không nhận được dữ liệu');
+      throw new Error("Không nhận được dữ liệu");
     }
-    
+
     console.log("Dữ liệu nhận được:", data);
-    
+
     // Validation
     if (!data.fullname || !data.email || !data.discountPercentage) {
-      throw new Error('Thiếu thông tin bắt buộc');
+      throw new Error("Thiếu thông tin bắt buộc");
     }
-    
+
     // Tạo mã giảm giá unique (không cần dò sheet DSM nữa)
     const discountCode = generateDiscountCode(data.discountPercentage);
     console.log("Mã giảm giá được tạo:", discountCode);
-    
+
     // Lưu dữ liệu vào Google Sheets
-    const ss = SpreadsheetApp.openById('1lHI2kIc5l2-SECJws20RogL1Fv983CE6Fwy2Bn3GX58');
-    const dataSheet = ss.getSheetByName('DSTT');
-    
+    const ss = SpreadsheetApp.openById(
+      "1lHI2kIc5l2-SECJws20RogL1Fv983CE6Fwy2Bn3GX58"
+    );
+    const dataSheet = ss.getSheetByName("DSTT");
+
     const timestamp = new Date();
     const newRow = [
-      data.fullname, 
-      data.email, 
-      discountCode, 
-      data.discountPercentage, 
+      data.fullname,
+      data.email,
+      discountCode,
+      data.discountPercentage,
       timestamp,
     ];
-    
+
     dataSheet.appendRow(newRow);
     console.log("Đã lưu dữ liệu vào Google Sheets");
-    
+
     // Gửi email
-    const emailSent = sendDiscountEmail(data.email, data.fullname, discountCode, data.discountPercentage);
-    
+    const emailSent = sendDiscountEmail(
+      data.email,
+      data.fullname,
+      discountCode,
+      data.discountPercentage
+    );
+
     // Tạo response
     const response = {
       success: true,
       discountCode: discountCode,
       emailSent: emailSent,
       message: "Xử lý thành công",
-      timestamp: timestamp.toISOString()
+      timestamp: timestamp.toISOString(),
     };
-    
+
     console.log("Response:", response);
-    
+
     // Xử lý JSONP callback
     if (e.parameter && e.parameter.callback) {
-      return ContentService.createTextOutput(e.parameter.callback + '(' + JSON.stringify(response) + ')')
-        .setMimeType(ContentService.MimeType.JAVASCRIPT);
+      return ContentService.createTextOutput(
+        e.parameter.callback + "(" + JSON.stringify(response) + ")"
+      ).setMimeType(ContentService.MimeType.JAVASCRIPT);
     }
-    
+
     // Trả về JSON
-    return ContentService.createTextOutput(JSON.stringify(response))
-      .setMimeType(ContentService.MimeType.JSON);
-      
+    return ContentService.createTextOutput(
+      JSON.stringify(response)
+    ).setMimeType(ContentService.MimeType.JSON);
   } catch (error) {
     console.error("Lỗi trong doPost:", error.message);
-    
+
     const errorResponse = {
       success: false,
       error: error.message,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
-    
+
     // Xử lý JSONP callback cho lỗi
     if (e.parameter && e.parameter.callback) {
-      return ContentService.createTextOutput(e.parameter.callback + '(' + JSON.stringify(errorResponse) + ')')
-        .setMimeType(ContentService.MimeType.JAVASCRIPT);
+      return ContentService.createTextOutput(
+        e.parameter.callback + "(" + JSON.stringify(errorResponse) + ")"
+      ).setMimeType(ContentService.MimeType.JAVASCRIPT);
     }
-    
-    return ContentService.createTextOutput(JSON.stringify(errorResponse))
-      .setMimeType(ContentService.MimeType.JSON);
+
+    return ContentService.createTextOutput(
+      JSON.stringify(errorResponse)
+    ).setMimeType(ContentService.MimeType.JSON);
   }
 }
