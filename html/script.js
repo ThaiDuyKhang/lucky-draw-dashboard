@@ -2,78 +2,90 @@ $(document).ready(function () {
   // URL của Google Apps Script
   const SCRIPT_URL =
     "https://script.google.com/macros/s/AKfycbxHlSw5shW4jgx6mg-cFBBQHSHsOlChY6CBC5fIgBqko097XNjlo7D86l5qjNtgQZMP/exec";
-  const prizes = [
-    { percentage: 20, count: 6, probability: 0.5 }, // 50% xác suất trúng 20%
-    { percentage: 30, count: 5, probability: 0.3 }, // 30% xác suất trúng 30%
-    { percentage: 40, count: 4, probability: 0.15 }, // 15% xác suất trúng 40%
-    { percentage: 50, count: 3, probability: 0.05 }, // 5% xác suất trúng 50%
-    { percentage: 100, count: 1, probability: 0 }, // 5% xác suất trúng 50%
-  ];
 
+  let participants = [];
+  let winners = [];
   let segments = [];
   let totalSegments = 0;
-  let selectedPrize = null;
+  let selectedWinner = null;
   let isSpinning = false;
   let starsAnimation = null;
 
-  // Tạo modal bootstrap
-  const congratsModal = new bootstrap.Modal($("#congratsModal")[0], {
-    backdrop: "static",
-    keyboard: false,
-  });
-
-  // Initialize wheel
+  // Initialize
+  loadParticipantsFromLocalStorage();
   initializeWheel();
 
   // Spin button click handler
   $("#ez-spin-btn").click(function () {
     if (isSpinning) return;
+
+    // Check if there are participants
+    const activeParticipants = participants.filter(
+      (p) => p.status === "active"
+    );
+    if (activeParticipants.length === 0) {
+      alert(
+        "Không có người tham dự nào! Vui lòng thêm người tham dự trong Dashboard."
+      );
+      return;
+    }
+
     performSpin();
-  });
-
-  // Form submission handler
-  $("#user-form").submit(function (e) {
-    e.preventDefault();
-    handleFormSubmission();
-  });
-
-  // Reset modal khi đóng
-  $("#congratsModal").on("hidden.bs.modal", function () {
-    resetModal();
   });
 
   // ==================== CORE FUNCTIONS ====================
 
   function initializeWheel() {
-    // Calculate total segments
-    prizes.forEach((prize) => {
-      totalSegments += prize.count;
+    // Get active participants
+    const activeParticipants = participants.filter(
+      (p) => p.status === "active"
+    );
+
+    // Create segments from participants
+    segments = [];
+    activeParticipants.forEach((participant, index) => {
+      segments.push({
+        name: participant.name,
+        id: participant.id,
+        color: index % 2 === 0 ? "#f3ffe1" : "#246d4b",
+      });
     });
 
-    // Create segments array
-    prizes.forEach((prize) => {
-      for (let i = 0; i < prize.count; i++) {
-        segments.push({
-          percentage: prize.percentage,
-          color: null,
-        });
-      }
-    });
-
-    // Shuffle và gán màu
-    segments = shuffleArray(segments);
-    segments.forEach((segment, index) => {
-      if (segment.percentage === 50) {
-        segment.color = "#ffeab9";
-      } else if (segment.percentage === 100) {
-        segment.color = "#cf1d1dff";
-      } else {
-        segment.color = index % 2 === 0 ? "#f3ffe1" : "#246d4b";
-      }
-    });
+    totalSegments = segments.length;
 
     // Draw the wheel
-    drawWheel(segments);
+    if (segments.length > 0) {
+      drawWheel(segments);
+    } else {
+      // Draw empty wheel
+      const svg = $(".wheel");
+      svg.html(
+        '<text x="250" y="250" fill="#246d4b" font-size="20" text-anchor="middle" dominant-baseline="middle">Chưa có người tham dự</text>'
+      );
+    }
+  }
+
+  function loadParticipantsFromLocalStorage() {
+    const savedParticipants = localStorage.getItem("luckydraw_participants");
+    const savedWinners = localStorage.getItem("luckydraw_winners");
+
+    if (savedParticipants) {
+      try {
+        participants = JSON.parse(savedParticipants);
+      } catch (e) {
+        console.error("Error loading participants:", e);
+        participants = [];
+      }
+    }
+
+    if (savedWinners) {
+      try {
+        winners = JSON.parse(savedWinners);
+      } catch (e) {
+        console.error("Error loading winners:", e);
+        winners = [];
+      }
+    }
   }
 
   function performSpin() {
@@ -85,26 +97,13 @@ $(document).ready(function () {
     // Bắt đầu hiệu ứng sao khi quay
     startStarsAnimation();
 
-    // Determine winning segment
-    selectedPrize = getRandomPrizeByProbability();
+    // Determine winning participant (random)
+    const randomIndex = Math.floor(Math.random() * segments.length);
+    selectedWinner = segments[randomIndex];
 
     // Calculate rotation
-    const winningSegments = segments.filter(
-      (seg) => seg.percentage === selectedPrize.percentage
-    );
-    const randomWinningSegment = Math.floor(
-      Math.random() * winningSegments.length
-    );
-    const segmentIndex = segments.findIndex(
-      (seg) =>
-        seg.percentage === selectedPrize.percentage &&
-        segments
-          .filter((s) => s.percentage === selectedPrize.percentage)
-          .indexOf(seg) === randomWinningSegment
-    );
-
     const segmentAngle = 360 / segments.length;
-    const segmentMiddle = segmentIndex * segmentAngle + segmentAngle / 2;
+    const segmentMiddle = randomIndex * segmentAngle + segmentAngle / 2;
     const extraSpins = 3;
     const spinAngle = extraSpins * 360 + (360 - segmentMiddle);
 
@@ -229,168 +228,44 @@ $(document).ready(function () {
   }
 
   function showSpinResult() {
-    $("#prize-text").text(`Giảm giá ${selectedPrize.percentage}%`);
-    $("#discount-percentage").val(selectedPrize.percentage);
+    // Update winner name in modal
+    $("#prize-text").text(selectedWinner.name);
 
+    // Save winner
+    const winner = {
+      id: selectedWinner.id,
+      name: selectedWinner.name,
+      winTime: new Date().toISOString(),
+    };
+
+    winners.push(winner);
+
+    // Mark participant as inactive (won)
+    const participantIndex = participants.findIndex(
+      (p) => p.id === selectedWinner.id
+    );
+    if (participantIndex !== -1) {
+      participants[participantIndex].status = "inactive";
+    }
+
+    // Save to localStorage
+    localStorage.setItem(
+      "luckydraw_participants",
+      JSON.stringify(participants)
+    );
+    localStorage.setItem("luckydraw_winners", JSON.stringify(winners));
+
+    // Show modal
     $("#congratsModal").addClass("modal-zoom-in");
-    congratsModal.show();
+    $("#congratsModal").modal("show");
     createConfetti();
 
     setTimeout(() => {
       $("#congratsModal").removeClass("modal-zoom-in");
     }, 600);
-  }
 
-  function handleFormSubmission() {
-    // Validation
-    const fullname = $("#fullname").val().trim();
-    const email = $("#email").val().trim();
-    let isValid = true;
-
-    // Clear previous errors
-    $(".error-message").text("");
-
-    if (fullname === "") {
-      $("#fullname-error").text("Vui lòng nhập họ tên");
-      isValid = false;
-    }
-
-    if (email === "") {
-      $("#email-error").text("Vui lòng nhập email");
-      isValid = false;
-    } else if (!isValidEmail(email)) {
-      $("#email-error").text("Email không hợp lệ");
-      isValid = false;
-    }
-
-    if (!isValid) return;
-
-    // Show loading state
-    setLoadingState(true);
-
-    const formData = {
-      fullname: fullname,
-      email: email,
-      discountPercentage: selectedPrize.percentage,
-    };
-
-    // Send data
-    sendDataToServer(formData);
-  }
-
-  function sendDataToServer(data) {
-    const formData = new FormData();
-    formData.append("fullname", data.fullname);
-    formData.append("email", data.email);
-    formData.append("discountPercentage", data.discountPercentage);
-    formData.append("timestamp", new Date().toISOString());
-
-    fetch(SCRIPT_URL, {
-      method: "POST",
-      body: formData,
-      mode: "no-cors",
-    })
-      .then(() => {
-        // Generate unique discount code (chỉ để gửi lên server, không hiển thị)
-        const timestamp = Date.now().toString(36).toUpperCase();
-        const discountCode = `WEB${data.discountPercentage}_${timestamp}`;
-
-        handleSuccess({
-          success: true,
-          discountCode: discountCode,
-          emailSent: true,
-          message: "Dữ liệu đã được gửi thành công",
-        });
-      })
-      .catch((error) => {
-        handleFallback(data);
-      });
-  }
-
-  function handleSuccess(response) {
-    setLoadingState(false);
-
-    $("#success-message").removeClass("d-none");
-    $("#user-form").addClass("d-none");
-
-    // Chỉ hiển thị trạng thái email, không hiển thị mã giảm giá
-    updateEmailStatus(response.emailSent);
-  }
-
-  function handleFallback(data) {
-    const tempCode = generateTempDiscountCode(data.discountPercentage);
-
-    handleSuccess({
-      success: true,
-      discountCode: tempCode,
-      emailSent: false,
-      message: "Mã tạm thời (offline)",
-    });
-  }
-
-  function updateEmailStatus(emailSent) {
-    setTimeout(() => {
-      if (emailSent) {
-        $("#email-status").html(`
-          <div class="d-flex flex-column align-items-center justify-content-center text-success">
-            <div id="success-lottie" style="width: 75px; height: 75px; margin-bottom: 15px;"></div>
-            <span class="text-center">🎉 Chúc mừng! <strong>Mã giảm giá ${selectedPrize.percentage}%</strong> đã được gửi đến email của bạn<br>
-            <small>Vui lòng kiểm tra hộp thư (inbox/spam/junk)</small></span>
-          </div>
-        `);
-
-        // Load Lottie success animation
-        if (typeof lottie !== "undefined") {
-          lottie.loadAnimation({
-            container: document.getElementById("success-lottie"),
-            renderer: "svg",
-            loop: false,
-            autoplay: true,
-            path: "./images/success.json",
-          });
-        } else {
-          // Fallback: CSS success icon
-          $("#success-lottie").html(`
-            <svg xmlns="http://www.w3.org/2000/svg" width="75" height="75" fill="currentColor" class="bi bi-check-circle-fill" viewBox="0 0 16 16" style="color: #28a745;">
-              <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.061L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
-            </svg>
-          `);
-        }
-      } else {
-        $("#email-status").html(`
-          <div class="d-flex flex-column align-items-center justify-content-center text-warning">
-            <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" fill="currentColor" class="bi bi-exclamation-triangle-fill mb-3" viewBox="0 0 16 16" style="color: #ffc107;">
-              <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
-            </svg>
-            <span class="text-center"><strong>⚠️ Không thể gửi email tự động</strong><br>
-            <small>Vui lòng liên hệ bộ phận hỗ trợ để nhận mã giảm giá ${selectedPrize.percentage}%:<br>
-            📞 Hotline: <a href="tel:0877223579">0877.223.579</a><br>
-            📧 Email: <a href="mailto:support@eztech.com.vn">support@eztech.com.vn</a></small></span>
-          </div>
-        `);
-      }
-    }, 1000);
-  }
-
-  function setLoadingState(loading) {
-    $("#submit-btn").prop("disabled", loading);
-    if (loading) {
-      $("#loading-spinner").removeClass("d-none");
-      $("#submit-text").addClass("d-none");
-      $("#success-message, #error-message").addClass("d-none");
-    } else {
-      $("#loading-spinner").addClass("d-none");
-      $("#submit-text").removeClass("d-none");
-    }
-  }
-
-  function resetModal() {
-    $("#user-form")[0].reset();
-    $("#user-form").removeClass("d-none");
-    $("#success-message").addClass("d-none");
-    $("#error-message").addClass("d-none");
-    $(".error-message").text("");
-    setLoadingState(false);
+    // Reload wheel for next spin
+    initializeWheel();
   }
 
   // ==================== UTILITY FUNCTIONS ====================
@@ -427,29 +302,34 @@ $(document).ready(function () {
 
       svgContent += `<path d="${pathData}" fill="${segment.color}" />`;
 
-      // Add text
+      // Add text (participant name)
       const textAngle = startAngle + anglePerSegment / 2;
       const textRad = ((textAngle - 90) * Math.PI) / 180;
       const textX = centerX + radius * 0.7 * Math.cos(textRad);
       const textY = centerY + radius * 0.7 * Math.sin(textRad);
 
-      let textColor =
-        segment.color === "#f3ffe1" || segment.color === "#ffeab9"
-          ? "#246d4b"
-          : "#ffffff";
+      // Text color based on background
+      let textColor = segment.color === "#f3ffe1" ? "#246d4b" : "#ffffff";
+
+      // Truncate long names
+      let displayName = segment.name;
+      if (displayName.length > 12) {
+        displayName = displayName.substring(0, 10) + "...";
+      }
 
       svgContent += `
         <text 
           x="${textX}" 
           y="${textY}" 
           fill="${textColor}" 
-          font-size="18" 
+          font-size="16" 
           font-weight="bold" 
           text-anchor="middle"
           dominant-baseline="middle"
+          transform="rotate(${textAngle + 90}, ${textX}, ${textY})"
           style="text-shadow: 1px 1px 2px rgba(0,0,0,0.3);"
         >
-          ${segment.percentage}%
+          ${escapeHtml(displayName)}
         </text>
       `;
     });
@@ -462,7 +342,7 @@ $(document).ready(function () {
       <text 
         x="${centerX}" 
         y="${centerY}" 
-        fill="#ffeab9" 
+        fill="#f3ffe1" 
         font-size="14" 
         font-weight="bold" 
         text-anchor="middle"
@@ -475,27 +355,15 @@ $(document).ready(function () {
     svg.html(svgContent);
   }
 
-  function getRandomPrizeByProbability() {
-    const random = Math.random();
-    let cumulativeProbability = 0;
-
-    for (const prize of prizes) {
-      cumulativeProbability += prize.probability;
-      if (random <= cumulativeProbability) {
-        return prize;
-      }
-    }
-
-    return prizes[prizes.length - 1];
-  }
-
-  function shuffleArray(array) {
-    const newArray = [...array];
-    for (let i = newArray.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
-    }
-    return newArray;
+  function escapeHtml(text) {
+    const map = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#039;",
+    };
+    return text.replace(/[&<>"']/g, (m) => map[m]);
   }
 
   function createConfetti() {
@@ -579,15 +447,5 @@ $(document).ready(function () {
         confetti.remove();
       }, 6000);
     }
-  }
-
-  function isValidEmail(email) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  }
-
-  function generateTempDiscountCode(percentage) {
-    const timestamp = Date.now().toString(36).toUpperCase();
-    return `TEMP${percentage}_${timestamp}`;
   }
 });

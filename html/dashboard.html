@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="./images/favicon.ico" type="image/x-icon">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="./dashboard.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <title>Dashboard Quản Lý - Vòng Quay May Mắn</title>
+</head>
+
+<body>
+    <div class="container py-5">
+        <div class="text-center mb-4">
+            <h1 class="dashboard-title">DASHBOARD QUẢN LÝ</h1>
+            <p class="text-muted">Quản lý người tham dự và theo dõi người trúng thưởng</p>
+        </div>
+
+        <div class="row g-4">
+            <!-- Left Column: Participant Management -->
+            <div class="col-lg-6">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-people-fill"></i> Quản Lý Người Tham Dự
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Add Participant Form -->
+                        <form id="add-participant-form" class="mb-4">
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="participant-name"
+                                    placeholder="Nhập tên người tham dự..." required>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="bi bi-plus-circle"></i> Thêm
+                                </button>
+                            </div>
+                            <div class="error-message" id="add-error"></div>
+                        </form>
+
+                        <!-- Participants List -->
+                        <div class="participants-header d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="mb-0">Danh sách (<span id="participant-count">0</span> người)</h6>
+                            <button type="button" class="btn btn-sm btn-outline-danger" id="clear-all-participants">
+                                <i class="bi bi-trash"></i> Xóa tất cả
+                            </button>
+                        </div>
+
+                        <div id="participants-list" class="list-group" style="max-height: 400px; overflow-y: auto;">
+                            <div class="text-center text-muted py-4">
+                                <p>Chưa có người tham dự nào</p>
+                                <small>Thêm người tham dự để bắt đầu</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Winners List -->
+            <div class="col-lg-6">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0">
+                            <i class="bi bi-trophy-fill"></i> Danh Sách Trúng Thưởng
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="winners-header d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="mb-0">Người đã trúng (<span id="winner-count">0</span> người)</h6>
+                            <button type="button" class="btn btn-sm btn-outline-danger" id="clear-all-winners">
+                                <i class="bi bi-trash"></i> Xóa tất cả
+                            </button>
+                        </div>
+
+                        <div id="winners-list" class="list-group" style="max-height: 450px; overflow-y: auto;">
+                            <div class="text-center text-muted py-4">
+                                <p>Chưa có người trúng thưởng</p>
+                                <small>Quay vòng quay để chọn người trúng</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="text-center mt-4">
+            <a href="index.html" class="btn btn-lg btn-primary">
+                <i class="bi bi-arrow-clockwise"></i> Đến Vòng Quay
+            </a>
+            <button type="button" class="btn btn-lg btn-outline-secondary" id="sync-data">
+                <i class="bi bi-cloud-download"></i> Đồng bộ dữ liệu
+            </button>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div id="loading-overlay" class="loading-overlay d-none">
+            <div class="spinner-border text-light" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="text-light mt-2">Đang xử lý...</p>
+        </div>
+    </div>
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="./dashboard.js"></script>
+</body>
+
+</html>
