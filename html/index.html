@@ -57,8 +57,8 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-body">
-                    <div class="row">
+                <div class="modal-body d-flex flex-column justify-content-center gap-3 align-items-center">
+                    <div class="row w-100">
                         <div class="form-info col-md-12">
                             <h4 class="text-center mb-4">Nhập thông tin nhận mã giảm giá</h4>
                             <!-- Form nhập thông tin -->
@@ -74,7 +74,7 @@
                                     <div class="error-message" id="email-error"></div>
                                 </div>
                                 <input type="hidden" id="discount-percentage" name="discountPercentage" value="">
-                                <button type="submit" class="btn bg-primary text-light w-100" id="submit-btn">
+                                <button type="submit" class="btn bg-primary text-light w-100 p-2" id="submit-btn">
                                     <span id="submit-text">Gửi thông tin</span>
                                     <span id="loading-spinner" class="loading d-none"></span>
                                 </button>
@@ -98,6 +98,7 @@
                             </div>
                         </div>
                     </div>
+                    <a href="javascript:location.reload()" class="btn btn-outline-secondary">Quay lại</a>
                 </div>
             </div>
         </div>
