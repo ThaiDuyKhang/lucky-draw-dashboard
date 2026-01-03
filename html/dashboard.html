@@ -13,7 +13,7 @@
 
 <body>
     <div class="container py-5">
-        <div class="row g-4">
+        <div class="row g-4 py-5">
             <div class="col-lg-6">
                 <div class="card shadow-sm">
                     <div class="card-header text-white">
@@ -22,8 +22,6 @@
                         </h5>
                     </div>
                     <div class="card-body">
-
-                        <!-- Add Participant Form -->
                         <form id="add-participant-form" class="mb-3 d-flex flex-column">
                             <div class="d-flex align-items-stretch">
                                 <div class="input-group w-100 me-3">
@@ -46,7 +44,6 @@
                             <div class="error-message" id="add-error"></div>
                         </form>
 
-                        <!-- Participants List -->
                         <div class="participants-header d-flex justify-content-between align-items-center mb-3">
                             <p class="mb-0 fw-bold">Danh sách tham dự (<span id="participant-count">0</span>)
                             </p>
@@ -54,7 +51,7 @@
                                 Xóa tất cả
                             </button>
                         </div>
-                        <div style="max-height: 400px; overflow-y: auto;">
+                        <div class="participants-wrapper pe-1">
                             <table class="table table-hover" id="participants-list">
                                 <tbody>
                                     <tr>
@@ -85,7 +82,7 @@
                             </button>
                         </div>
 
-                        <div id="winners-list" class="list-group" style="max-height: 450px; overflow-y: auto;">
+                        <div id="winners-list" class="list-group pe-1" style="max-height: 450px; overflow-y: auto;">
                             <div class="text-center text-muted py-4">
                                 <p>Chưa có người trúng thưởng</p>
                             </div>
@@ -96,7 +93,7 @@
         </div>
 
         <div class="d-flex justify-content-center mt-4 gap-3">
-            <a href="index.html" class="btn btn-return">
+            <a href="/" class="btn btn-return">
                 Đến vòng quay
             </a>
             <button type="button" class="btn btn-outline-dark btn-sync" id="sync-data">
@@ -117,7 +114,7 @@
                         <p>Bạn muốn làm gì với <strong id="winner-name-modal"></strong>?</p>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-success" id="restore-winner-btn">
+                        <button type="button" class="btn btn-outline-dark" id="restore-winner-btn">
                             Chuyển về danh sách tham dự
                         </button>
                         <button type="button" class="btn btn-danger" id="delete-winner-btn">
@@ -142,11 +139,60 @@
                         </p>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-success" id="restore-all-winners-btn">
+                        <button type="button" class="btn btn-outline-dark" id="restore-all-winners-btn">
                             Chuyển tất cả về danh sách tham dự
                         </button>
                         <button type="button" class="btn btn-danger" id="delete-all-winners-btn">
                             Xóa tất cả
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delete Participant Modal -->
+        <div class="modal fade" id="deleteParticipantModal" tabindex="-1" aria-labelledby="deleteParticipantModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="deleteParticipantModalLabel">Xóa người tham dự</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Bạn có chắc muốn xóa <strong id="participant-name-modal"></strong>?</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-dark" data-bs-dismiss="modal">
+                            Huỷ
+                        </button>
+                        <button type="button" class="btn btn-danger" id="confirm-delete-participant-btn">
+                            Xoá
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Clear All Participants Modal -->
+        <div class="modal fade" id="clearAllParticipantsModal" tabindex="-1"
+            aria-labelledby="clearAllParticipantsModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="clearAllParticipantsModalLabel">Xóa tất cả người tham dự</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Bạn có chắc muốn xóa <strong>tất cả <span id="all-participants-count"></span> người tham
+                                dự</strong>?</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-dark" data-bs-dismiss="modal">
+                            Huỷ
+                        </button>
+                        <button type="button" class="btn btn-danger" id="confirm-clear-all-participants-btn">
+                            Xoá
                         </button>
                     </div>
                 </div>

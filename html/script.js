@@ -13,11 +13,12 @@ $(document).ready(function () {
     },
 
     TIMING: {
-      SPIN_DURATION: 12000,
-      FADE_OUT_START: 10000,
+      SPIN_DURATION: 1000, // 20000
+      FADE_OUT_START: 1000, //18000
       FADE_OUT_DURATION: 2000,
-      MODAL_DELAY: 2000,
+      MODAL_DELAY: 0, // 2000
       EXTRA_SPINS: 3,
+      EASING: "cubic-bezier(0.17, 0.67, 0.35, 0.96)",
     },
 
     WHEEL: {
@@ -306,9 +307,9 @@ $(document).ready(function () {
 
     $(".custom-wheel").css({
       transform: `rotate(${spinAngle}deg)`,
-      transition: `transform ${
-        CONFIG.TIMING.SPIN_DURATION / 1000
-      }s cubic-bezier(0.25, 0.46, 0.45, 0.94)`,
+      transition: `transform ${CONFIG.TIMING.SPIN_DURATION / 1000}s ${
+        CONFIG.TIMING.EASING
+      }`,
     });
 
     setTimeout(() => {

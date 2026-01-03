@@ -20,7 +20,7 @@ $(document).ready(function () {
   // Event delegation for delete buttons
   $("#participants-list").on("click", ".btn-delete", function () {
     const participantId = parseInt($(this).data("id"));
-    deleteParticipant(participantId);
+    showDeleteParticipantModal(participantId);
   });
 
   // Event delegation for delete winner buttons
@@ -30,9 +30,21 @@ $(document).ready(function () {
   });
 
   $("#clear-all-participants").click(function () {
-    if (confirm("Bạn có chắc muốn xóa tất cả người tham dự ?")) {
-      clearAllParticipants();
+    if (participants.filter((p) => p.status === "active").length === 0) {
+      showToast("Không có người tham dự nào để xóa", "warning");
+      return;
     }
+
+    // Update modal content
+    $("#all-participants-count").text(
+      participants.filter((p) => p.status === "active").length
+    );
+
+    // Show modal
+    const modal = new bootstrap.Modal(
+      document.getElementById("clearAllParticipantsModal")
+    );
+    modal.show();
   });
 
   $("#clear-all-winners").click(function () {
@@ -104,14 +116,29 @@ $(document).ready(function () {
     showToast("Đã thêm: " + name, "success");
   }
 
+  function showDeleteParticipantModal(id) {
+    const participant = participants.find((p) => p.id === id);
+    if (!participant) return;
+
+    // Store current participant id for modal actions
+    window.currentParticipantId = id;
+
+    // Update modal content
+    $("#participant-name-modal").text(participant.name);
+
+    // Show modal
+    const modal = new bootstrap.Modal(
+      document.getElementById("deleteParticipantModal")
+    );
+    modal.show();
+  }
+
   function deleteParticipant(id) {
-    if (confirm("Bạn có chắc muốn xóa người này ?")) {
-      const participant = participants.find((p) => p.id === id);
-      participants = participants.filter((p) => p.id !== id);
-      saveDataToLocalStorage();
-      renderParticipants();
-      showToast("Đã xóa: " + participant.name, "info");
-    }
+    const participant = participants.find((p) => p.id === id);
+    participants = participants.filter((p) => p.id !== id);
+    saveDataToLocalStorage();
+    renderParticipants();
+    showToast("Đã xóa: " + participant.name, "info");
   }
 
   function deleteWinner(index) {
@@ -220,6 +247,27 @@ $(document).ready(function () {
     // Close modal
     bootstrap.Modal.getInstance(
       document.getElementById("clearAllWinnersModal")
+    ).hide();
+  });
+
+  // Delete participant modal button handlers
+  $("#confirm-delete-participant-btn").click(function () {
+    const id = window.currentParticipantId;
+    deleteParticipant(id);
+
+    // Close modal
+    bootstrap.Modal.getInstance(
+      document.getElementById("deleteParticipantModal")
+    ).hide();
+  });
+
+  // Clear all participants modal button handler
+  $("#confirm-clear-all-participants-btn").click(function () {
+    clearAllParticipants();
+
+    // Close modal
+    bootstrap.Modal.getInstance(
+      document.getElementById("clearAllParticipantsModal")
     ).hide();
   });
 
@@ -464,12 +512,12 @@ $(document).ready(function () {
     // Simple toast notification
     const bgColor =
       type === "success"
-        ? "#28a745"
+        ? "#246d4b"
         : type === "warning"
         ? "#ffc107"
         : type === "danger"
         ? "#dc3545"
-        : "#17a2b8";
+        : "#246d4b";
 
     const toast = $(`
       <div class="toast-notification" style="
@@ -479,7 +527,7 @@ $(document).ready(function () {
         background: ${bgColor};
         color: white;
         padding: 15px 25px;
-        border-radius: 8px;
+        border-radius: 4px;
         box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         z-index: 10000;
         animation: slideInRight 0.3s ease;
