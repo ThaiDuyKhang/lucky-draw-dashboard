@@ -13,10 +13,10 @@ $(document).ready(function () {
     },
 
     TIMING: {
-      SPIN_DURATION: 1000, // 20000
-      FADE_OUT_START: 800, //18000
+      SPIN_DURATION: 20000, // 20000
+      FADE_OUT_START: 18000, //18000
       FADE_OUT_DURATION: 2000,
-      MODAL_DELAY: 0, // 2000
+      MODAL_DELAY: 2000, // 2000
       EXTRA_SPINS: 3,
       EASING: "cubic-bezier(0.17, 0.67, 0.35, 0.96)",
     },
