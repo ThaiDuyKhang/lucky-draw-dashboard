@@ -13,10 +13,10 @@ $(document).ready(function () {
     },
 
     TIMING: {
-      SPIN_DURATION: 1000, // 20000
-      FADE_OUT_START: 1000, //18000
+      SPIN_DURATION: 20000, // 20000
+      FADE_OUT_START: 18000, //18000
       FADE_OUT_DURATION: 2000,
-      MODAL_DELAY: 0, // 2000
+      MODAL_DELAY: 2000, // 2000
       EXTRA_SPINS: 3,
       EASING: "cubic-bezier(0.17, 0.67, 0.35, 0.96)",
     },
@@ -563,4 +563,276 @@ $(document).ready(function () {
     };
     return text.replace(/[&<>"']/g, (m) => map[m]);
   }
+
+  // Interactive Text Animation
+  function initInteractiveText() {
+    const select = (e) => document.querySelector(e);
+    const selectAll = (e) => document.querySelectorAll(e);
+
+    const style = getComputedStyle(document.body);
+    const stage = select(".stage");
+    if (!stage) return;
+
+    const weightInit = 600;
+    const weightTarget = 400;
+    const weightDiff = weightInit - weightTarget;
+    const stretchInit = 150;
+    const stretchTarget = 80;
+    const stretchDiff = stretchInit - stretchTarget;
+    const maxYScale = 2.5;
+    const body = document.body;
+
+    let mySplitText = new SplitText(".txt", {
+      type: "chars",
+      charsClass: "char",
+      position: "relative",
+    });
+    let chars = selectAll(".char");
+    let txt = select(".txt");
+
+    if (!chars || chars.length === 0) return;
+
+    let numChars = chars.length;
+    let isMouseDown = false;
+    let letters = selectAll(".char");
+    let mouseInitialY = 0;
+    let mouseFinalY = 0;
+    let distY = 0;
+    let charIndexSelected = 0;
+    let charH = 0;
+    let elasticDropOff = 0.2;
+    let dragYScale = 0;
+
+    function init() {
+      resize();
+
+      // KHÔNG set autoAlpha ở đây để tránh text hiển thị sớm
+      gsap.set(chars, {
+        transformOrigin: "center center",
+      });
+      // Không gọi animInTxt() ngay, sẽ gọi từ bên ngoài
+    }
+
+    function animInTxt() {
+      let elem = document.querySelector(".char");
+      if (!elem) return;
+      let rect = elem.getBoundingClientRect();
+
+      // Hiển thị text trước khi animation
+      gsap.set(stage, { autoAlpha: 1 });
+      $(".txt").css("visibility", "visible");
+      $(".txt").css("opacity", 1);
+
+      gsap.from(chars, {
+        y: () => {
+          return -1 * (rect.y + charH + 0);
+        },
+        fontWeight: weightTarget,
+        fontStretch: stretchTarget,
+        scaleY: 1,
+        ease: "elastic(0.15, 0.1)",
+        duration: 0.8,
+        delay: 0.1,
+        stagger: {
+          each: 0.02,
+          from: "random",
+        },
+        onComplete: initEvents,
+      });
+    }
+
+    function initEvents() {
+      body.onmouseup = function (e) {
+        if (isMouseDown) {
+          mouseFinalY = e.clientY;
+          isMouseDown = false;
+          snapBackText();
+          body.classList.remove("grab");
+        }
+      };
+
+      body.onmousemove = function (e) {
+        if (isMouseDown) {
+          mouseFinalY = e.clientY;
+          calcDist();
+          setFontDragDimensions();
+        }
+      };
+
+      body.addEventListener("mouseleave", (event) => {
+        if (
+          event.clientY <= 0 ||
+          event.clientX <= 0 ||
+          event.clientX >= window.innerWidth ||
+          event.clientY >= window.innerHeight
+        ) {
+          snapBackText();
+          isMouseDown = false;
+        }
+      });
+
+      chars.forEach((char, index) => {
+        char.addEventListener("mousedown", function (e) {
+          mouseInitialY = e.clientY;
+          charIndexSelected = index;
+          charSelected = e.target;
+          isMouseDown = true;
+          body.classList.add("grab");
+        });
+      });
+    }
+
+    function calcDist() {
+      let maxYDragDist = charH * (maxYScale - 1);
+      distY = mouseInitialY - mouseFinalY;
+      dragYScale = distY / maxYDragDist;
+      if (dragYScale > maxYScale - 1) {
+        dragYScale = maxYScale - 1;
+      } else if (dragYScale < -0.5) {
+        dragYScale = -0.5;
+      }
+    }
+
+    function setFontDragDimensions() {
+      gsap.to(chars, {
+        y: (index, target) => {
+          let fracDispersion = calcfracDispersion(index);
+          return fracDispersion * -50;
+        },
+        fontWeight: (index, target) => {
+          let fracDispersion = calcfracDispersion(index);
+          return weightInit - fracDispersion * weightDiff;
+        },
+        fontStretch: (index, target) => {
+          let fracDispersion = calcfracDispersion(index);
+          return stretchInit - fracDispersion * stretchDiff;
+        },
+        scaleY: (index, target) => {
+          let fracDispersion = calcfracDispersion(index);
+          let scaleY = 1 + fracDispersion;
+          if (scaleY < 0.5) scaleY = 0.5;
+          return scaleY;
+        },
+        ease: "power4",
+        duration: 0.6,
+      });
+    }
+
+    function calcfracDispersion(index) {
+      let dispersion =
+        1 - Math.abs(index - charIndexSelected) / (numChars * elasticDropOff);
+      return dispersion * dragYScale;
+    }
+
+    function snapBackText() {
+      gsap.to(chars, {
+        y: 0,
+        fontWeight: weightInit,
+        fontStretch: stretchInit,
+        scale: 1,
+        ease: "elastic(0.35, 0.1)",
+        duration: 1,
+        stagger: {
+          each: 0.02,
+          from: charIndexSelected,
+        },
+      });
+    }
+
+    function autoPlayEffect(count = 0) {
+      if (count >= 3) return; // Chạy 3 lần
+
+      // Chọn ngẫu nhiên một ký tự
+      const randomCharIndex = Math.floor(Math.random() * numChars);
+      charIndexSelected = randomCharIndex;
+
+      // Tạo hiệu ứng kéo ngẫu nhiên
+      const randomDragScale = Math.random() * 1.5 + 0.5; // Random từ 0.5 đến 2
+      dragYScale = randomDragScale;
+
+      // Áp dụng hiệu ứng (fontWeight + text-stroke)
+      gsap.to(chars, {
+        fontWeight: (index, target) => {
+          let fracDispersion = calcfracDispersion(index);
+          return weightInit - fracDispersion * weightDiff;
+        },
+        webkitTextStroke: (index, target) => {
+          let strokeWidth = 0.05;
+          return `${strokeWidth}rem #ffeb60`;
+        },
+        ease: "power4",
+        duration: 0.6,
+        onComplete: () => {
+          gsap.to(chars, {
+            fontWeight: weightInit,
+            webkitTextStroke: "0",
+            ease: "elastic(0.35, 0.1)",
+            duration: 1,
+            stagger: {
+              each: 0.02,
+              from: randomCharIndex,
+            },
+            onComplete: () => {
+              // Chạy lần tiếp theo sau 0.5s
+              setTimeout(() => {
+                autoPlayEffect(count + 1);
+              }, 100);
+            },
+          });
+        },
+      });
+    }
+
+    function resize() {
+      charH = txt.offsetHeight;
+    }
+
+    init();
+
+    window.addEventListener("resize", resize);
+
+    // Trả về function để có thể gọi từ bên ngoài
+    return {
+      autoPlay: autoPlayEffect,
+      startAnimation: animInTxt, // Thêm function để start animation
+      getAnimationDuration: () => {
+        return 200 + 800 + numChars * 20;
+      },
+    };
+  }
+
+  // Initialize interactive text when modal is shown
+  $("#congratsModal").on("shown.bs.modal", function () {
+    $("#prize-container").css({ opacity: 0, visibility: "hidden" });
+    $("#modal-buttons").css({ opacity: 0, visibility: "hidden" });
+
+    const textAnimation = initInteractiveText();
+
+    if (textAnimation) {
+      const animDuration = textAnimation.getAnimationDuration();
+
+      // Bắt đầu animation text ngay lập tức
+      textAnimation.startAnimation();
+
+      setTimeout(() => {
+        textAnimation.autoPlay();
+      }, 100);
+
+      setTimeout(() => {
+        $("#prize-container").css("visibility", "visible");
+        $("#prize-container").animate({ opacity: 1 }, 200);
+      }, animDuration - 500); // Đợi animation hoàn thành + 0.5s
+
+      setTimeout(() => {
+        $("#modal-buttons").css("visibility", "visible");
+        $("#modal-buttons").animate({ opacity: 1 }, 500);
+      }, animDuration + 1500); // Đợi thêm 1s sau khi tên xuất hiện
+    }
+  });
+
+  // Reset khi modal đóng
+  $("#congratsModal").on("hidden.bs.modal", function () {
+    $("#prize-container").css({ opacity: 0, visibility: "hidden" });
+    $("#modal-buttons").css({ opacity: 0, visibility: "hidden" });
+  });
 });
