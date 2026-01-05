@@ -13,10 +13,10 @@ $(document).ready(function () {
     },
 
     TIMING: {
-      SPIN_DURATION: 20000, // 20000
-      FADE_OUT_START: 18000, //18000
+      SPIN_DURATION: 1000, // 20000
+      FADE_OUT_START: 800, //18000
       FADE_OUT_DURATION: 2000,
-      MODAL_DELAY: 2000, // 2000
+      MODAL_DELAY: 0, // 2000
       EXTRA_SPINS: 3,
       EASING: "cubic-bezier(0.17, 0.67, 0.35, 0.96)",
     },
@@ -61,6 +61,7 @@ $(document).ready(function () {
   let selectedWinner = null;
   let isSpinning = false;
   let starsAnimation = null;
+  let currentSplitText = null;
 
   // Initialization
 
@@ -798,6 +799,11 @@ $(document).ready(function () {
       getAnimationDuration: () => {
         return 200 + 800 + numChars * 20;
       },
+      cleanup: () => {
+        if (mySplitText) {
+          mySplitText.revert();
+        }
+      },
     };
   }
 
@@ -806,7 +812,14 @@ $(document).ready(function () {
     $("#prize-container").css({ opacity: 0, visibility: "hidden" });
     $("#modal-buttons").css({ opacity: 0, visibility: "hidden" });
 
+    // Clean up previous SplitText instance if exists
+    if (currentSplitText) {
+      currentSplitText.cleanup();
+      currentSplitText = null;
+    }
+
     const textAnimation = initInteractiveText();
+    currentSplitText = textAnimation;
 
     if (textAnimation) {
       const animDuration = textAnimation.getAnimationDuration();
@@ -832,7 +845,29 @@ $(document).ready(function () {
 
   // Reset khi modal đóng
   $("#congratsModal").on("hidden.bs.modal", function () {
+    // Clean up SplitText instance
+    if (currentSplitText) {
+      currentSplitText.cleanup();
+      currentSplitText = null;
+    }
+
+    // Kill all GSAP animations on text elements
+    gsap.killTweensOf(".char");
+    gsap.killTweensOf(".txt");
+    gsap.killTweensOf(".stage");
+
+    // Reset all styles
     $("#prize-container").css({ opacity: 0, visibility: "hidden" });
     $("#modal-buttons").css({ opacity: 0, visibility: "hidden" });
+    $(".txt").css({ opacity: 0, visibility: "hidden" });
+    $(".stage").css({ autoAlpha: 0 });
+
+    // Reset text content to original state
+    const txtElement = document.querySelector(".txt");
+    if (txtElement) {
+      txtElement.innerHTML = "Chúc mừng bạn đã trúng thưởng";
+      gsap.set(txtElement, { clearProps: "all" });
+      $(txtElement).css({ opacity: 0, visibility: "hidden" });
+    }
   });
 });
