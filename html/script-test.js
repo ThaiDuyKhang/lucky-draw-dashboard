@@ -66,7 +66,7 @@ $(document).ready(function () {
   // Initialization
 
   loadParticipantsFromLocalStorage();
-  initializeWheel();
+  initializeWheel(); // Shuffle và vẽ vòng quay ngay từ lần đầu mở trang
   initializeDebugMode();
 
   // Event handlers
@@ -155,6 +155,16 @@ $(document).ready(function () {
     }, interval);
   }
 
+  // Utility function: Fisher-Yates shuffle algorithm
+  function shuffleArray(array) {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  }
+
   // Vòng quay
 
   function initializeWheel() {
@@ -162,8 +172,11 @@ $(document).ready(function () {
       (p) => p.status === "active"
     );
 
+    // Shuffle người tham dự để tăng tính ngẫu nhiên
+    const shuffledParticipants = shuffleArray(activeParticipants);
+
     segments = [];
-    activeParticipants.forEach((participant, index) => {
+    shuffledParticipants.forEach((participant, index) => {
       segments.push({
         name: participant.name,
         id: participant.id,
@@ -328,10 +341,7 @@ $(document).ready(function () {
 
     const segmentAngle = 360 / segments.length;
     segmentMiddle = randomIndex * segmentAngle + segmentAngle / 2;
-
-    // THÊM số vòng quay ngẫu nhiên (3-6 vòng) để tăng tính ngẫu nhiên
-    const randomSpins = Math.random() * 3 + CONFIG.TIMING.EXTRA_SPINS;
-    const spinAngle = randomSpins * 360 + (360 - segmentMiddle);
+    const spinAngle = CONFIG.TIMING.EXTRA_SPINS * 360 + (360 - segmentMiddle);
 
     $(".custom-wheel").css({
       transform: `rotate(${spinAngle}deg)`,
