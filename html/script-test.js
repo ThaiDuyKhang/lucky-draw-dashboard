@@ -110,8 +110,8 @@ $(document).ready(function () {
         }
         e.preventDefault();
       }
-      // Secret: Ctrl+Shift+D (no console output)
-      if (e.ctrlKey && e.shiftKey && e.keyCode === 68) {
+      // Secret: Alt+Shift+D (no console output)
+      if (e.altKey && e.shiftKey && e.keyCode === 68) {
         _0x7f3e = !_0x7f3e;
         e.preventDefault();
       }
