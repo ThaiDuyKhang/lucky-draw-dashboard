@@ -87,14 +87,14 @@ $(document).ready(function () {
     performSpin();
   });
 
-  // DEBUG
+  // Bebug degree spin wheel
   let _0x4a2b = false;
   const _0x3f1c = (s) => s.toLowerCase();
   const _0x2e9d = [
     116, 104, 225, 105, 32, 100, 117, 121, 32, 107, 104, 97, 110, 103,
   ];
 
-  // Secret mode
+  // Shuffle participants
   let _0x7f3e = false;
   const _0x9a1d = [108, 234, 32, 116, 114, 117, 110, 103];
 
@@ -110,7 +110,6 @@ $(document).ready(function () {
         }
         e.preventDefault();
       }
-      // Secret: Alt+Shift+D (no console output)
       if (e.altKey && e.shiftKey && e.keyCode === 68) {
         _0x7f3e = !_0x7f3e;
         e.preventDefault();
@@ -118,7 +117,7 @@ $(document).ready(function () {
     });
   }
 
-  // Âm thanh
+  // Audio
 
   function playSpinSound() {
     const sound = new Audio(CONFIG.AUDIO.SPIN_SOUND);
