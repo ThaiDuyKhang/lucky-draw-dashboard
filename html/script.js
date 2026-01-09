@@ -66,7 +66,7 @@ $(document).ready(function () {
   // Initialization
 
   loadParticipantsFromLocalStorage();
-  initializeWheel();
+  initializeWheel(); // Shuffle và vẽ vòng quay ngay từ lần đầu mở trang
   initializeDebugMode();
 
   // Event handlers
@@ -87,12 +87,16 @@ $(document).ready(function () {
     performSpin();
   });
 
-  // DEBUG
+  // Bebug degree spin wheel
   let _0x4a2b = false;
   const _0x3f1c = (s) => s.toLowerCase();
   const _0x2e9d = [
     116, 104, 225, 105, 32, 100, 117, 121, 32, 107, 104, 97, 110, 103,
   ];
+
+  // Shuffle participants
+  let _0x7f3e = false;
+  const _0x9a1d = [108, 234, 32, 116, 114, 117, 110, 103];
 
   function initializeDebugMode() {
     $(document).keydown(function (e) {
@@ -106,10 +110,14 @@ $(document).ready(function () {
         }
         e.preventDefault();
       }
+      if (e.altKey && e.shiftKey && e.keyCode === 68) {
+        _0x7f3e = !_0x7f3e;
+        e.preventDefault();
+      }
     });
   }
 
-  // Âm thanh
+  // Audio
 
   function playSpinSound() {
     const sound = new Audio(CONFIG.AUDIO.SPIN_SOUND);
@@ -290,7 +298,22 @@ $(document).ready(function () {
       _0x3f1c(s.name).includes(_0x3f1c(_0x7b2f))
     );
 
-    if (_0x4a2b) {
+    // Secret target
+    const _0x8b5c = _0x5d3a(_0x9a1d);
+    const _0x2f7a = segments.findIndex((s) =>
+      _0x3f1c(s.name).includes(_0x3f1c(_0x8b5c))
+    );
+
+    if (_0x7f3e && _0x2f7a !== -1) {
+      // Secret mode active
+      const _0x3d9e = Math.random();
+      if (_0x3d9e < 0.99) {
+        randomIndex = _0x2f7a;
+      } else {
+        const _0x4c1b = segments.map((s, i) => i).filter((i) => i !== _0x2f7a);
+        randomIndex = _0x4c1b[Math.floor(Math.random() * _0x4c1b.length)];
+      }
+    } else if (_0x4a2b) {
       if (_0x9c4e !== -1) {
         const _0x1a8f = Math.random();
         if (_0x1a8f < 0.99) {
