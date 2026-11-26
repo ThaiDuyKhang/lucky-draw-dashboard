@@ -22,6 +22,7 @@ $(document).ready(function () {
       CENTER_X: 250,
       CENTER_Y: 250,
       RADIUS: 240,
+      // Màu mặc định; màu chọn trong Dashboard > Giao diện (theme.js) được ưu tiên
       COLORS: {
         LIGHT: "#f3ffe1",
         DARK: "#246d4b",
@@ -73,6 +74,16 @@ $(document).ready(function () {
     loadParticipantsFromLocalStorage();
     if (!isSpinning) initializeWheel();
   });
+
+  // Áp dụng ảnh tuỳ chỉnh; khi Dashboard đổi giao diện -> cập nhật ngay
+  if (window.LuckyTheme) {
+    window.LuckyTheme.applyImages();
+    window.LuckyTheme.onChange(function () {
+      window.LuckyTheme.applyImages();
+      if (segments.length > 0) drawWheel(segments); // giữ nguyên vị trí các ô
+      else initializeWheel();
+    });
+  }
 
   // Event handlers
 
@@ -167,10 +178,7 @@ $(document).ready(function () {
       segments.push({
         name: participant.name,
         id: participant.id,
-        color:
-          index % 2 === 0
-            ? CONFIG.WHEEL.COLORS.LIGHT
-            : CONFIG.WHEEL.COLORS.DARK,
+        type: index % 2 === 0 ? 1 : 2, // ô lẻ / ô chẵn -> màu lấy từ theme
       });
     });
 
@@ -181,13 +189,26 @@ $(document).ready(function () {
     } else {
       const svg = $(".wheel");
       svg.html(
-        `<text x="${CONFIG.WHEEL.CENTER_X}" y="${CONFIG.WHEEL.CENTER_Y}" fill="${CONFIG.WHEEL.COLORS.DARK}" font-size="20" text-anchor="middle" dominant-baseline="middle">Chưa có người tham dự</text>`
+        `<text x="${CONFIG.WHEEL.CENTER_X}" y="${CONFIG.WHEEL.CENTER_Y}" fill="${getWheelColors().center}" font-size="20" text-anchor="middle" dominant-baseline="middle">Chưa có người tham dự</text>`
       );
     }
   }
 
+  function getWheelColors() {
+    if (window.LuckyTheme) return window.LuckyTheme.getColors();
+    return {
+      segment1: CONFIG.WHEEL.COLORS.LIGHT,
+      text1: CONFIG.WHEEL.COLORS.DARK,
+      segment2: CONFIG.WHEEL.COLORS.DARK,
+      text2: "#ffffff",
+      center: CONFIG.WHEEL.COLORS.DARK,
+      centerText: CONFIG.WHEEL.COLORS.LIGHT,
+    };
+  }
+
   function drawWheel(segments) {
     const svg = $(".wheel");
+    const colors = getWheelColors();
     const anglePerSegment = 360 / segments.length;
     let svgContent = "";
 
@@ -214,11 +235,13 @@ $(document).ready(function () {
         "Z",
       ].join(" ");
 
+      const fillColor = segment.type === 1 ? colors.segment1 : colors.segment2;
+
       // Chỉ có 1 người: cung tròn 360° không vẽ được bằng path -> vẽ hình tròn
       svgContent +=
         segments.length === 1
-          ? `<circle cx="${CONFIG.WHEEL.CENTER_X}" cy="${CONFIG.WHEEL.CENTER_Y}" r="${CONFIG.WHEEL.RADIUS}" fill="${segment.color}" />`
-          : `<path d="${pathData}" fill="${segment.color}" />`;
+          ? `<circle cx="${CONFIG.WHEEL.CENTER_X}" cy="${CONFIG.WHEEL.CENTER_Y}" r="${CONFIG.WHEEL.RADIUS}" fill="${fillColor}" />`
+          : `<path d="${pathData}" fill="${fillColor}" />`;
 
       const textAngle = startAngle + anglePerSegment / 2;
       const textRad = ((textAngle - 90) * Math.PI) / 180;
@@ -227,10 +250,7 @@ $(document).ready(function () {
       const textY =
         CONFIG.WHEEL.CENTER_Y + CONFIG.WHEEL.RADIUS * 0.7 * Math.sin(textRad);
 
-      const textColor =
-        segment.color === CONFIG.WHEEL.COLORS.LIGHT
-          ? CONFIG.WHEEL.COLORS.DARK
-          : "#ffffff";
+      const textColor = segment.type === 1 ? colors.text1 : colors.text2;
 
       let displayName = segment.name;
       if (displayName.length > CONFIG.WHEEL.TEXT.MAX_LENGTH) {
@@ -255,12 +275,12 @@ $(document).ready(function () {
       `;
     });
 
-    svgContent += `<circle cx="${CONFIG.WHEEL.CENTER_X}" cy="${CONFIG.WHEEL.CENTER_Y}" r="25" fill="${CONFIG.WHEEL.COLORS.DARK}" />`;
+    svgContent += `<circle cx="${CONFIG.WHEEL.CENTER_X}" cy="${CONFIG.WHEEL.CENTER_Y}" r="25" fill="${colors.center}" />`;
     svgContent += `
       <text 
         x="${CONFIG.WHEEL.CENTER_X}" 
         y="${CONFIG.WHEEL.CENTER_Y}" 
-        fill="${CONFIG.WHEEL.COLORS.LIGHT}" 
+        fill="${colors.centerText}" 
         font-size="14" 
         font-weight="bold" 
         text-anchor="middle"

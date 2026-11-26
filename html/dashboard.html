@@ -92,7 +92,7 @@
             </div>
         </div>
 
-        <div class="d-flex justify-content-center mt-4 gap-3">
+        <div class="d-flex justify-content-center flex-wrap mt-4 gap-3">
             <a href="index.html" class="btn btn-return">
                 Đến vòng quay
             </a>
@@ -102,6 +102,55 @@
             <button type="button" class="btn btn-outline-dark" id="open-gsheet-setup">
                 <i class="bi bi-gear"></i> Cài đặt Google Sheet
             </button>
+            <button type="button" class="btn btn-outline-dark" id="open-theme-settings">
+                <i class="bi bi-palette"></i> Giao diện
+            </button>
+        </div>
+
+        <!-- Theme Settings Modal -->
+        <div class="modal fade" id="themeModal" tabindex="-1" aria-labelledby="themeModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="themeModalLabel"><i class="bi bi-palette"></i> Tuỳ chỉnh giao diện
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="small text-muted">
+                            Thay đổi được áp dụng ngay, kể cả trên tab Vòng quay đang mở. Cài đặt được lưu trong trình
+                            duyệt này — hãy chỉnh trên đúng máy sẽ chiếu vòng quay.
+                        </p>
+
+                        <h6 class="theme-section-title">Hình ảnh</h6>
+                        <div class="row g-3 mb-4" id="theme-images"></div>
+
+                        <h6 class="theme-section-title">Màu vòng quay</h6>
+                        <div class="row g-4 align-items-center">
+                            <div class="col-md-7">
+                                <div class="mb-3">
+                                    <div class="small fw-semibold mb-2">Bảng màu có sẵn</div>
+                                    <div class="d-flex flex-wrap gap-2" id="theme-presets"></div>
+                                </div>
+                                <div class="row g-2" id="theme-colors"></div>
+                                <button type="button" class="btn btn-sm btn-outline-dark mt-3" id="reset-theme-colors">
+                                    <i class="bi bi-arrow-counterclockwise"></i> Màu mặc định
+                                </button>
+                            </div>
+                            <div class="col-md-5 text-center">
+                                <svg id="theme-preview" viewBox="0 0 500 500" class="theme-preview"></svg>
+                                <div class="small text-muted">Xem trước</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer justify-content-between">
+                        <button type="button" class="btn btn-outline-danger" id="reset-theme-all">
+                            <i class="bi bi-arrow-counterclockwise"></i> Khôi phục toàn bộ mặc định
+                        </button>
+                        <button type="button" class="btn btn-return" data-bs-dismiss="modal">Xong</button>
+                    </div>
+                </div>
+            </div>
         </div>
         <p class="text-center small mt-2 mb-0" id="gsheet-status-text"></p>
 
@@ -290,6 +339,8 @@
     <link rel="stylesheet" href="./libs/bootstrap-icons.css">
     <script src="./libs/bootstrap.bundle.min.js"></script>
     <script src="./gsheet-setup.js"></script>
+    <script src="./theme.js"></script>
+    <script src="./theme-settings.js"></script>
     <script src="./dashboard.js"></script>
 </body>
 

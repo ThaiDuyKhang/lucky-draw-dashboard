@@ -574,6 +574,9 @@ $(document).ready(function () {
       });
   }
 
+  // Cho các script khác (theme-settings.js) dùng chung kiểu thông báo
+  window.showDashboardToast = showToast;
+
   // ==================== GOOGLE SHEET SETUP ====================
 
   $("#apps-script-code").text(window.APPS_SCRIPT_CODE || "// Không tải được gsheet-setup.js");

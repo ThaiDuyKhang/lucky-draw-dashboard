@@ -365,3 +365,80 @@ body {
 #gsheet-current-url {
     word-break: break-all;
 }
+
+/* Theme settings modal */
+.theme-section-title {
+    font-weight: 600;
+    color: var(--color-green);
+    border-bottom: 1px solid #e5e5e5;
+    padding-bottom: 6px;
+    margin-bottom: 12px;
+}
+
+.theme-image-card {
+    border: 1px solid #e5e5e5;
+    border-radius: 10px;
+    padding: 10px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.theme-image-preview {
+    height: 130px;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    /* nền ô cờ để thấy được ảnh PNG trong suốt */
+    background-color: #fff;
+    background-image:
+        linear-gradient(45deg, #e9e9e9 25%, transparent 25%),
+        linear-gradient(-45deg, #e9e9e9 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #e9e9e9 75%),
+        linear-gradient(-45deg, transparent 75%, #e9e9e9 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.theme-image-preview img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.theme-color-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.875rem;
+}
+
+.theme-color-item input[type="color"] {
+    width: 44px;
+    height: 34px;
+    padding: 2px;
+    flex-shrink: 0;
+}
+
+.theme-preset {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+}
+
+.theme-preset .swatch {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1px solid rgba(0, 0, 0, .15);
+}
+
+.theme-preview {
+    width: 100%;
+    max-width: 280px;
+}
