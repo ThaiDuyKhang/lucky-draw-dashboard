@@ -153,41 +153,42 @@ $(document).ready(function () {
     bootstrap.Modal.getOrCreateInstance(document.getElementById("winnersModal")).show();
   }
 
+  // Giống khung "Người trúng thưởng" ở trang /bang-danh-sach/
   function renderWinnersModal() {
     const now = Date.now();
     const winners = (state ? state.winners : [])
       .filter((w) => w.status !== "cancelled" && (w.revealAt || 0) <= now)
       .sort((a, b) => a.wonAt - b.wonAt);
+    const prizes = state ? state.prizes : [];
     $("#winners-modal-count").text(winners.length);
-    if (!winners.length) {
-      $("#winners-modal-body").html('<div class="text-center text-muted py-5">Chưa có người trúng thưởng</div>');
-      return;
-    }
-    const item = (w, i) => `<li><span class="num">${i + 1}</span><span>${escapeHtml(w.name)}</span></li>`;
-    const group = (title, imageId, list) => `
-      <div class="winners-prize">
-        ${title !== null ? `<div class="winners-prize-header">
-          ${imageId ? `<img src="${Api.imageUrl(imageId)}" alt="">` : '<i class="li icon-gift"></i>'}
-          <div class="winners-prize-name">${escapeHtml(title)}</div>
-          <span class="text-muted fw-semibold">${list.length}</span>
-        </div>` : ""}
-        <ol class="winners-grid">${list.map(item).join("")}</ol>
-      </div>`;
+
+    const winnerItem = (w, i) =>
+      `<li><span class="num">${i + 1}</span><span class="name">${escapeHtml(w.name)}</span></li>`;
+
     let html = "";
-    const prizeIds = new Set();
-    state.prizes.forEach((p) => {
-      prizeIds.add(p.id);
-      const list = winners.filter((w) => w.prizeId === p.id);
-      if (list.length) html += group(p.name, p.imageId, list);
-    });
-    // Người trúng giải đã bị xoá: nhóm theo tên giải lúc trúng
-    const orphan = {};
-    winners
-      .filter((w) => w.prizeId && !prizeIds.has(w.prizeId))
-      .forEach((w) => (orphan[w.prize.name] = orphan[w.prize.name] || { img: w.prize.imageId, list: [] }).list.push(w));
-    Object.keys(orphan).forEach((name) => (html += group(name, orphan[name].img, orphan[name].list)));
-    const noPrize = winners.filter((w) => !w.prizeId);
-    if (noPrize.length) html += group(html ? "Không gắn giải" : null, null, noPrize);
+    for (const prize of prizes) {
+      const list = winners.filter((w) => w.prizeId === prize.id);
+      const left = prize.quantity ? `<span class="prize-count">${list.length}/${prize.quantity}</span>` : "";
+      html += `
+        <div class="prize-group">
+          <div class="prize-group-header">
+            ${prize.imageId ? `<img src="${Api.imageUrl(prize.imageId)}" alt="">` : '<i class="li icon-gift"></i>'}
+            <div class="prize-group-name">${escapeHtml(prize.name)}</div>
+            ${left}
+          </div>
+          ${list.length ? `<ol class="winner-list">${list.map(winnerItem).join("")}</ol>` : '<div class="empty small">Chưa có người trúng</div>'}
+        </div>`;
+    }
+    const known = new Set(prizes.map((p) => p.id));
+    const others = winners.filter((w) => !w.prizeId || !known.has(w.prizeId));
+    if (others.length) {
+      html += `
+        <div class="prize-group">
+          ${prizes.length ? '<div class="prize-group-header"><i class="li icon-star"></i><div class="prize-group-name">Giải khác</div></div>' : ""}
+          <ol class="winner-list">${others.map(winnerItem).join("")}</ol>
+        </div>`;
+    }
+    if (!html) html = '<div class="empty">Chưa có người trúng thưởng</div>';
     $("#winners-modal-body").html(html);
   }
 
