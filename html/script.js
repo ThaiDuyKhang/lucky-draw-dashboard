@@ -79,6 +79,7 @@ $(document).ready(function () {
       state = next;
       Api.applyTheme(state.theme);
       renderPrizeBar();
+      if ($("#winnersModal").hasClass("show")) renderWinnersModal();
       if (first || activeKey(state) !== prevKey) initializeWheel();
       else if (JSON.stringify(state.theme.colors) !== prevColors) drawWheel(segments);
     } catch (e) {
@@ -130,6 +131,65 @@ $(document).ready(function () {
       showToast(e.message);
     }
   });
+
+  // ----- Modal danh sách trúng thưởng (chỉ người đã công bố, chưa huỷ) -----
+  $(document).on("click", ".open-winners", function () {
+    const congrats = bootstrap.Modal.getInstance(document.getElementById("congratsModal"));
+    if (congrats && $("#congratsModal").hasClass("show")) {
+      $("#congratsModal").one("hidden.bs.modal", openWinnersModal);
+      congrats.hide();
+    } else {
+      openWinnersModal();
+    }
+  });
+
+  async function openWinnersModal() {
+    if (!isSpinning) {
+      try {
+        state = await Api.adminState();
+      } catch (e) {}
+    }
+    renderWinnersModal();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById("winnersModal")).show();
+  }
+
+  function renderWinnersModal() {
+    const now = Date.now();
+    const winners = (state ? state.winners : [])
+      .filter((w) => w.status !== "cancelled" && (w.revealAt || 0) <= now)
+      .sort((a, b) => a.wonAt - b.wonAt);
+    $("#winners-modal-count").text(winners.length);
+    if (!winners.length) {
+      $("#winners-modal-body").html('<div class="text-center text-muted py-5">Chưa có người trúng thưởng</div>');
+      return;
+    }
+    const item = (w, i) => `<li><span class="num">${i + 1}</span><span>${escapeHtml(w.name)}</span></li>`;
+    const group = (title, imageId, list) => `
+      <div class="winners-prize">
+        ${title !== null ? `<div class="winners-prize-header">
+          ${imageId ? `<img src="${Api.imageUrl(imageId)}" alt="">` : '<i class="li icon-gift"></i>'}
+          <div class="winners-prize-name">${escapeHtml(title)}</div>
+          <span class="text-muted fw-semibold">${list.length}</span>
+        </div>` : ""}
+        <ol class="winners-grid">${list.map(item).join("")}</ol>
+      </div>`;
+    let html = "";
+    const prizeIds = new Set();
+    state.prizes.forEach((p) => {
+      prizeIds.add(p.id);
+      const list = winners.filter((w) => w.prizeId === p.id);
+      if (list.length) html += group(p.name, p.imageId, list);
+    });
+    // Người trúng giải đã bị xoá: nhóm theo tên giải lúc trúng
+    const orphan = {};
+    winners
+      .filter((w) => w.prizeId && !prizeIds.has(w.prizeId))
+      .forEach((w) => (orphan[w.prize.name] = orphan[w.prize.name] || { img: w.prize.imageId, list: [] }).list.push(w));
+    Object.keys(orphan).forEach((name) => (html += group(name, orphan[name].img, orphan[name].list)));
+    const noPrize = winners.filter((w) => !w.prizeId);
+    if (noPrize.length) html += group(html ? "Không gắn giải" : null, null, noPrize);
+    $("#winners-modal-body").html(html);
+  }
 
   function showToast(message) {
     const t = $('<div class="wheel-toast"></div>').text(message).appendTo("body");

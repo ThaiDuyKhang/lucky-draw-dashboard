@@ -29,8 +29,7 @@
             </div>
         </div>
         <div class="wheel-links">
-            <a href="/bang-danh-sach/" target="_blank" title="Bảng danh sách công khai">Bảng danh sách</a>
-            <a href="/dashboard" title="Quản trị">Dashboard</a>
+            <button type="button" class="open-winners"><i class="li icon-trophy"></i> Danh sách trúng thưởng</button>
         </div>
     </div>
 
@@ -57,6 +56,20 @@
         </div>
     </div>
 
+    <!-- Modal danh sách trúng thưởng -->
+    <div class="modal fade" id="winnersModal" tabindex="-1" aria-labelledby="winnersModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content winners-modal">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="winnersModalLabel"><i class="li icon-trophy"></i> Danh sách trúng thưởng
+                        <span class="badge text-bg-warning ms-1" id="winners-modal-count">0</span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body" id="winners-modal-body"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal chúc mừng người trúng -->
     <div class="modal fade" id="congratsModal" tabindex="-1" aria-labelledby="congratsModalLabel" aria-hidden="true"
         data-bs-backdrop="static" data-bs-keyboard="false">
@@ -79,7 +92,7 @@
                 <div class="modal-footer bg-transparent d-flex flex-column justify-content-center gap-3 align-items-center mt-5 border-0"
                     id="modal-buttons" style="opacity: 0; visibility: hidden;">
                     <a href="javascript:void(0)" class="btn btn-lg btn-warning" data-bs-dismiss="modal">Quay tiếp</a>
-                    <a href="/bang-danh-sach/" target="_blank" class="btn btn-lg btn-outline-light">Xem danh sách trúng thưởng</a>
+                    <button type="button" class="btn btn-lg btn-outline-light open-winners">Xem danh sách trúng thưởng</button>
                 </div>
             </div>
         </div>

@@ -202,12 +202,15 @@
                                         id="copy-apps-script"><i class="li icon-clipboard"></i> Sao chép code</button>
                                     <pre class="gsheet-code mb-0"><code id="apps-script-code">Đang tải…</code></pre>
                                 </div>
-                                <p class="small">Xoá code mặc định trong <code>Code.gs</code>, dán vào, bấm
-                                    <strong>Lưu</strong>.</p>
+                                <p class="small">Mở file có sẵn (<code>Code.gs</code> / <code>Mã.gs</code>), <strong>xoá hết
+                                        code cũ</strong>, dán vào, bấm <strong>Lưu</strong>. <span class="text-danger">Không
+                                        tạo thêm file mới</span> — nếu có nhiều file chứa code này sẽ bị lỗi
+                                    <em>"Identifier 'SECRET' has already been declared"</em>, hãy xoá các file thừa.</p>
                                 <h6 class="gsheet-step"><span>3</span> Cấp quyền gửi email</h6>
                                 <ol class="small">
-                                    <li>Trên thanh công cụ của Apps Script, chọn hàm <strong>capQuyen</strong> trong ô
-                                        chọn hàm, bấm <strong>▷ Chạy</strong> (<em>Run</em>).</li>
+                                    <li>Trên thanh công cụ của Apps Script (phía trên vùng code), ở ô chọn hàm cạnh nút
+                                        <em>Gỡ lỗi</em>, chọn <strong>capQuyen</strong> rồi bấm <strong>▷ Chạy</strong>
+                                        (<em>Run</em>).</li>
                                     <li>Bấm <strong>Xem xét quyền</strong> → chọn tài khoản → nếu Google cảnh báo, chọn
                                         <em>Advanced → Go to … (unsafe)</em> → <strong>Cho phép</strong> (<em>Allow</em>).
                                     </li>
