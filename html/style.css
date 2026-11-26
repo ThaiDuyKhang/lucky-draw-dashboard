@@ -700,68 +700,114 @@ html:not(.theme-ready) .main-title {
     opacity: 0.85;
 }
 
-/* Modal danh sách trúng thưởng trên màn hình vòng quay */
-.winners-modal .modal-header {
-    background: #246d4b;
-    color: #fff;
+/* Modal danh sách trúng thưởng: giống khung "Người trúng thưởng" ở /bang-danh-sach/ */
+.winners-modal {
+    background: rgba(255, 255, 255, 0.94);
+    border: 0;
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+    height: 80vh;
 }
 
-.winners-modal .btn-close {
-    filter: invert(1);
+.winners-modal-header {
+    background: #ffc107;
+    color: #1d1d1d;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
-.winners-prize {
+.winners-modal-header h2 {
+    font-size: clamp(1.1rem, 1.8vw, 1.6rem);
+    margin: 0;
+    font-weight: 700;
+    flex: 1;
+}
+
+.winners-modal-header .count {
+    display: inline-block;
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 20px;
+    padding: 0 12px;
+    margin-left: 6px;
+    font-size: 0.85em;
+}
+
+.winners-modal .modal-body {
+    padding: 16px 20px;
+}
+
+.winners-modal .empty {
+    color: #888;
+    text-align: center;
+    padding: 24px 0;
+}
+
+.winners-modal .empty.small {
+    padding: 6px 0 4px;
+    text-align: left;
+    font-size: 0.95rem;
+}
+
+.winners-modal .prize-group {
     margin-bottom: 18px;
 }
 
-.winners-prize-header {
+.winners-modal .prize-group-header {
     display: flex;
     align-items: center;
     gap: 12px;
     border-bottom: 2px solid #eee;
     padding-bottom: 8px;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
 }
 
-.winners-prize-header img {
-    width: 52px;
-    height: 52px;
+.winners-modal .prize-group-header img {
+    width: 56px;
+    height: 56px;
     object-fit: contain;
 }
 
-.winners-prize-header .li {
-    font-size: 1.6rem;
+.winners-modal .prize-group-header .li {
+    font-size: 1.8rem;
     color: #246d4b;
 }
 
-.winners-prize-name {
-    font-size: 1.25rem;
+.winners-modal .prize-group-name {
+    font-size: clamp(1.1rem, 1.6vw, 1.5rem);
     font-weight: 700;
     color: #246d4b;
     flex: 1;
 }
 
-.winners-grid {
+.winners-modal .prize-group-header .prize-count {
+    font-weight: 600;
+    color: #666;
+}
+
+.winners-modal .winner-list {
     list-style: none;
-    padding: 0;
     margin: 0;
+    padding: 0;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
     gap: 8px;
 }
 
-.winners-grid li {
+.winners-modal .winner-list li {
     display: flex;
     align-items: center;
     gap: 10px;
     background: #f6fbf8;
     border-radius: 10px;
     padding: 8px 12px;
-    font-size: 1.1rem;
+    font-size: clamp(1rem, 1.4vw, 1.3rem);
     font-weight: 600;
 }
 
-.winners-grid .num {
+.winners-modal .winner-list .num {
     background: #246d4b;
     color: #fff;
     border-radius: 50%;
