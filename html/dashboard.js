@@ -1,793 +1,951 @@
-$(document).ready(function () {
-  // URL Web App mặc định của Google Apps Script. Có thể để trống "".
-  // URL dán trong hộp thoại "Cài đặt Google Sheet" (lưu ở trình duyệt) được ưu tiên hơn.
-  const DEFAULT_SCRIPT_URL =
-    "https://script.google.com/macros/s/AKfycbxHlSw5shW4jgx6mg-cFBBQHSHsOlChY6CBC5fIgBqko097XNjlo7D86l5qjNtgQZMP/exec";
-  const SCRIPT_URL_KEY = "luckydraw_script_url";
-  const SCRIPT_URL_PATTERN =
-    /https:\/\/script\.google\.com\/(?:a\/macros\/[^/\s]+|macros)\/s\/[\w-]+\/exec/;
+// Dashboard quản trị: người tham dự, giải thưởng, người trúng + email, cài đặt, giao diện.
+// Dữ liệu lưu trên máy chủ (Cloudflare); mọi màn hình đang mở tự cập nhật.
+$(function () {
+  const Api = window.LuckyApi;
+  const esc = Api.escapeHtml;
+  let state = null;
 
-  function getSavedScriptUrl() {
-    try {
-      return localStorage.getItem(SCRIPT_URL_KEY) || "";
-    } catch (e) {
-      return "";
-    }
+  // ==================== TIỆN ÍCH ====================
+  function showToast(message, type = "info") {
+    const colors = { success: "#198754", danger: "#dc3545", warning: "#ffc107", info: "#246d4b" };
+    const toast = $('<div class="toast-notification"></div>')
+      .css({ background: colors[type] || colors.info, color: type === "warning" ? "#212529" : "#fff" })
+      .text(message);
+    $(".toast-stack").length || $("body").append('<div class="toast-stack"></div>');
+    $(".toast-stack").append(toast);
+    setTimeout(() => toast.fadeOut(300, () => toast.remove()), type === "danger" ? 7000 : 3500);
   }
 
-  function getScriptUrl() {
-    return getSavedScriptUrl() || DEFAULT_SCRIPT_URL;
+  function loading(on) {
+    $("#loading").toggleClass("d-none", !on);
   }
 
-  let participants = [];
-  let winners = [];
-
-  // Initialize
-  loadDataFromLocalStorage();
-  renderParticipants();
-  renderWinners();
-
-  // Vòng quay (tab khác) vừa có người trúng -> nạp lại để không ghi đè dữ liệu cũ
-  window.addEventListener("storage", function (e) {
-    if (e.key !== "luckydraw_participants" && e.key !== "luckydraw_winners") {
-      return;
-    }
-    loadDataFromLocalStorage();
-    renderParticipants();
-    renderWinners();
-  });
-
-  // Event Handlers
-  $("#add-participant-form").submit(function (e) {
-    e.preventDefault();
-    addParticipant();
-  });
-
-  // Event delegation for delete buttons
-  $("#participants-list").on("click", ".btn-delete", function () {
-    const participantId = parseInt($(this).data("id"));
-    showDeleteParticipantModal(participantId);
-  });
-
-  // Event delegation for delete winner buttons
-  $("#winners-list").on("click", ".btn-delete-winner", function () {
-    const winnerIndex = parseInt($(this).data("index"));
-    deleteWinner(winnerIndex);
-  });
-
-  $("#clear-all-participants").click(function () {
-    if (participants.filter((p) => p.status === "active").length === 0) {
-      showToast("Không có người tham dự nào để xóa", "warning");
-      return;
-    }
-
-    // Update modal content
-    $("#all-participants-count").text(
-      participants.filter((p) => p.status === "active").length
-    );
-
-    // Show modal
-    const modal = new bootstrap.Modal(
-      document.getElementById("clearAllParticipantsModal")
-    );
-    modal.show();
-  });
-
-  $("#clear-all-winners").click(function () {
-    if (winners.length === 0) {
-      showToast("Không có người trúng thưởng nào để xóa", "warning");
-      return;
-    }
-
-    // Update modal content
-    $("#all-winners-count").text(winners.length);
-
-    // Show modal
-    const modal = new bootstrap.Modal(
-      document.getElementById("clearAllWinnersModal")
-    );
-    modal.show();
-  });
-
-  $("#sync-data").click(function () {
-    syncDataToServer();
-  });
-
-  // Import Excel / CSV handlers
-  $("#import-csv-btn").click(function () {
-    $("#csv-file-input").click();
-  });
-
-  $("#csv-file-input").change(function (e) {
-    const file = e.target.files[0];
-    if (file) {
-      importFile(file);
-    }
-    // Reset input so same file can be selected again
-    $(this).val("");
-  });
-
-  // ==================== CORE FUNCTIONS ====================
-
-  function addParticipant() {
-    const name = $("#participant-name").val().trim();
-    $("#add-error").text("");
-
-    if (name === "") {
-      $("#add-error").text("Vui lòng nhập tên người tham dự");
-      return;
-    }
-
-    // Check duplicate
-    if (participants.some((p) => p.name.toLowerCase() === name.toLowerCase())) {
-      $("#add-error").text("Tên này đã tồn tại trong danh sách");
-      return;
-    }
-
-    const participant = {
-      id: generateId(),
-      name: name,
-      createdDate: new Date().toISOString(),
-      status: "active",
-    };
-
-    participants.push(participant);
-    saveDataToLocalStorage();
-    renderParticipants();
-
-    // Reset form
-    $("#participant-name").val("");
-
-    // Show success feedback
-    showToast("Đã thêm: " + name, "success");
-  }
-
-  function showDeleteParticipantModal(id) {
-    const participant = participants.find((p) => p.id === id);
-    if (!participant) return;
-
-    // Store current participant id for modal actions
-    window.currentParticipantId = id;
-
-    // Update modal content
-    $("#participant-name-modal").text(participant.name);
-
-    // Show modal
-    const modal = new bootstrap.Modal(
-      document.getElementById("deleteParticipantModal")
-    );
-    modal.show();
-  }
-
-  function deleteParticipant(id) {
-    const participant = participants.find((p) => p.id === id);
-    if (!participant) return;
-    participants = participants.filter((p) => p.id !== id);
-    saveDataToLocalStorage();
-    renderParticipants();
-    showToast("Đã xóa: " + participant.name, "info");
-  }
-
-  function deleteWinner(index) {
-    const winner = winners[index];
-    if (!winner) return;
-
-    // Store current winner index for modal actions
-    window.currentWinnerIndex = index;
-
-    // Update modal content
-    $("#winner-name-modal").text(winner.name);
-
-    // Show modal
-    const modal = new bootstrap.Modal(
-      document.getElementById("deleteWinnerModal")
-    );
-    modal.show();
-  }
-
-  // Modal button handlers
-  $("#restore-winner-btn").click(function () {
-    const index = window.currentWinnerIndex;
-    const winner = winners[index];
-    if (!winner) return;
-
-    // Remove from winners list
-    winners.splice(index, 1);
-
-    // Find and restore participant to active status
-    const participant = participants.find((p) => p.id === winner.id);
-    if (participant) {
-      participant.status = "active";
-    }
-
-    // Save and render
-    saveDataToLocalStorage();
-    renderWinners();
-    renderParticipants();
-    showToast("Đã chuyển về danh sách tham dự: " + winner.name, "success");
-
-    // Close modal
-    bootstrap.Modal.getInstance(
-      document.getElementById("deleteWinnerModal")
-    ).hide();
-  });
-
-  $("#delete-winner-btn").click(function () {
-    const index = window.currentWinnerIndex;
-    const winner = winners[index];
-    if (!winner) return;
-
-    // Remove from winners list
-    winners.splice(index, 1);
-
-    // Also remove from participants completely
-    participants = participants.filter((p) => p.id !== winner.id);
-
-    // Save and render
-    saveDataToLocalStorage();
-    renderWinners();
-    renderParticipants();
-    showToast("Đã xóa hoàn toàn: " + winner.name, "info");
-
-    // Close modal
-    bootstrap.Modal.getInstance(
-      document.getElementById("deleteWinnerModal")
-    ).hide();
-  });
-
-  // Clear all winners modal button handlers
-  $("#restore-all-winners-btn").click(function () {
-    // Restore all winners to participants
-    winners.forEach((winner) => {
-      const participant = participants.find((p) => p.id === winner.id);
-      if (participant) {
-        participant.status = "active";
-      }
-    });
-
-    // Clear winners list
-    winners = [];
-
-    // Save and render
-    saveDataToLocalStorage();
-    renderWinners();
-    renderParticipants();
-    showToast("Đã chuyển tất cả về danh sách tham dự", "success");
-
-    // Close modal
-    bootstrap.Modal.getInstance(
-      document.getElementById("clearAllWinnersModal")
-    ).hide();
-  });
-
-  $("#delete-all-winners-btn").click(function () {
-    // Remove all winners from participants completely
-    const winnerIds = winners.map((w) => w.id);
-    participants = participants.filter((p) => !winnerIds.includes(p.id));
-
-    // Clear winners list
-    winners = [];
-
-    // Save and render
-    saveDataToLocalStorage();
-    renderWinners();
-    renderParticipants();
-    showToast("Đã xóa hoàn toàn tất cả người trúng thưởng", "info");
-
-    // Close modal
-    bootstrap.Modal.getInstance(
-      document.getElementById("clearAllWinnersModal")
-    ).hide();
-  });
-
-  // Delete participant modal button handlers
-  $("#confirm-delete-participant-btn").click(function () {
-    const id = window.currentParticipantId;
-    deleteParticipant(id);
-
-    // Close modal
-    bootstrap.Modal.getInstance(
-      document.getElementById("deleteParticipantModal")
-    ).hide();
-  });
-
-  // Clear all participants modal button handler
-  $("#confirm-clear-all-participants-btn").click(function () {
-    clearAllParticipants();
-
-    // Close modal
-    bootstrap.Modal.getInstance(
-      document.getElementById("clearAllParticipantsModal")
-    ).hide();
-  });
-
-  // Import danh sách từ file Excel (.xlsx) hoặc CSV: lấy cột đầu tiên làm tên
-  function importFile(file) {
-    const fileName = file.name.toLowerCase();
-
-    if (fileName.endsWith(".xlsx")) {
-      if (typeof readXlsxFile !== "function") {
-        showToast("Không tải được thư viện đọc Excel. Hãy lưu file dạng CSV rồi import.", "danger");
-        return;
-      }
-      readXlsxFile(file)
-        .then((rows) => {
-          // Một số phiên bản trả về danh sách sheet -> lấy sheet đầu tiên
-          if (rows.length && rows[0] && Array.isArray(rows[0].data)) rows = rows[0].data;
-          addImportedNames(rows.map((row) => cellToText(row && row[0])));
-        })
-        .catch((error) => {
-          console.error("Excel import error:", error);
-          showToast("Không đọc được file Excel. Kiểm tra file có đúng định dạng .xlsx", "danger");
-        });
-      return;
-    }
-
-    if (fileName.endsWith(".xls")) {
-      showToast("File .xls (Excel 97-2003) chưa được hỗ trợ. Mở bằng Excel và lưu lại dạng .xlsx", "warning");
-      return;
-    }
-
-    if (!fileName.endsWith(".csv")) {
-      showToast("Vui lòng chọn file Excel (.xlsx) hoặc CSV (.csv)", "danger");
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = function (e) {
-      const lines = e.target.result.split(/\r?\n/);
-      // Lấy cột đầu tiên (hỗ trợ file có nhiều cột, phân cách , ; hoặc tab)
-      addImportedNames(lines.map((line) => getFirstCsvColumn(line.replace(/^\uFEFF/, ""))));
-    };
-    reader.onerror = function () {
-      showToast("Lỗi khi đọc file CSV", "danger");
-    };
-    reader.readAsText(file, "UTF-8");
-  }
-
-  function cellToText(cell) {
-    if (cell === null || cell === undefined) return "";
-    return String(cell);
-  }
-
-  function addImportedNames(values) {
-    let addedCount = 0;
-    let duplicateCount = 0;
-    let emptyCount = 0;
-
-    // Bỏ các dòng trống ở cuối file (không tính là "dòng trống")
-    let last = values.length;
-    while (last > 0 && String(values[last - 1]).trim() === "") last--;
-
-    values.slice(0, last).forEach((value, index) => {
-      const name = String(value).replace(/\s+/g, " ").trim();
-
-      if (name === "") {
-        emptyCount++;
-        return;
-      }
-
-      // Bỏ qua dòng tiêu đề (Tên, Họ tên, Họ và tên, Name...)
-      if (index === 0 && HEADER_NAMES.includes(name.toLowerCase())) {
-        return;
-      }
-
-      // Check for duplicates (case-insensitive)
-      if (participants.some((p) => p.name.toLowerCase() === name.toLowerCase())) {
-        duplicateCount++;
-        return;
-      }
-
-      participants.push({
-        id: generateId(),
-        name: name,
-        createdDate: new Date().toISOString(),
-        status: "active",
+  // Hộp thoại xác nhận: buttons = [{ value, label, cls }] -> Promise<value | null>
+  function confirmDialog({ title, html, buttons }) {
+    return new Promise((resolve) => {
+      const el = document.getElementById("confirmModal");
+      $("#confirm-title").text(title);
+      $("#confirm-body").html(html);
+      const footer = $("#confirm-footer").empty();
+      let result = null;
+      footer.append('<button type="button" class="btn btn-outline-dark" data-bs-dismiss="modal">Huỷ</button>');
+      buttons.forEach((b) => {
+        $('<button type="button" class="btn"></button>')
+          .addClass(b.cls || "btn-return")
+          .text(b.label)
+          .on("click", () => {
+            result = b.value;
+            bootstrap.Modal.getInstance(el).hide();
+          })
+          .appendTo(footer);
       });
-      addedCount++;
+      $(el).one("hidden.bs.modal", () => resolve(result));
+      bootstrap.Modal.getOrCreateInstance(el).show();
     });
-
-    if (addedCount > 0) {
-      saveDataToLocalStorage();
-      renderParticipants();
-    }
-
-    let message = `Import hoàn tất: ${addedCount} người được thêm`;
-    if (duplicateCount > 0) message += `, ${duplicateCount} trùng lặp`;
-    if (emptyCount > 0) message += `, ${emptyCount} dòng trống`;
-    showToast(message, addedCount > 0 ? "success" : "warning");
   }
 
-  const HEADER_NAMES = ["tên", "ten", "họ tên", "họ và tên", "name", "full name", "fullname"];
-
-  // Lấy giá trị cột đầu tiên của 1 dòng CSV (có xử lý dấu ngoặc kép)
-  function getFirstCsvColumn(line) {
-    const trimmed = line.trim();
-    if (trimmed.startsWith('"')) {
-      let value = "";
-      for (let i = 1; i < trimmed.length; i++) {
-        const ch = trimmed[i];
-        if (ch === '"') {
-          if (trimmed[i + 1] === '"') {
-            value += '"';
-            i++;
-          } else {
-            return value;
-          }
-        } else {
-          value += ch;
-        }
-      }
-      return value;
+  // Gọi 1 thao tác admin, cập nhật dữ liệu và hiển thị
+  async function run(action, body, successMessage, { quiet = false } = {}) {
+    if (!quiet) loading(true);
+    try {
+      const res = await Api.action(action, body);
+      setState(res.state);
+      if (successMessage) showToast(typeof successMessage === "function" ? successMessage(res) : successMessage, "success");
+      return res;
+    } catch (e) {
+      showToast(e.message, "danger");
+      return null;
+    } finally {
+      if (!quiet) loading(false);
     }
-    let value = trimmed.split(/[,;\t]/)[0];
-    if (value.startsWith("'") && value.endsWith("'") && value.length > 1) {
-      value = value.slice(1, -1);
-    }
-    return value;
   }
 
-  // ID duy nhất, tăng dần (tránh trùng khi thêm/import nhiều người cùng lúc)
-  function generateId() {
-    const maxId = participants.reduce((m, p) => Math.max(m, Number(p.id) || 0), 0);
-    return Math.max(Date.now(), maxId + 1);
+  function formatTime(ts) {
+    if (!ts) return "";
+    const d = new Date(ts);
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${pad(d.getHours())}:${pad(d.getMinutes())} ${pad(d.getDate())}/${pad(d.getMonth() + 1)}`;
   }
 
-  function clearAllParticipants() {
-    // Chỉ xoá những người đang hiển thị (chưa trúng); người đã trúng được giữ
-    // lại để còn "Chuyển về danh sách tham dự" từ danh sách trúng thưởng
-    participants = participants.filter((p) => p.status !== "active");
-    saveDataToLocalStorage();
+  // ==================== DỮ LIỆU ====================
+  let formsFilled = false;
+
+  async function refresh() {
+    try {
+      setState(await Api.adminState());
+    } catch (e) {
+      showToast(e.message, "danger");
+    }
+  }
+
+  function setState(next) {
+    state = next;
+    render();
+  }
+
+  function render() {
+    $("#nav-event-name").text(state.settings.eventName);
+    document.title = "Dashboard - " + state.settings.eventName;
     renderParticipants();
-    showToast("Đã xóa tất cả người tham dự", "info");
+    renderWinners();
+    renderPrizes();
+    renderScriptStatus();
+    renderThemeImages();
+    if (!formsFilled) {
+      fillSettingsForms();
+      formsFilled = true;
+    }
+    renderAppsScriptCode();
   }
 
+  // ==================== NGƯỜI THAM DỰ ====================
   function renderParticipants() {
-    const container = $("#participants-list tbody");
-    const activeParticipants = participants.filter(
-      (p) => p.status === "active"
-    );
-
-    $("#participant-count").text(activeParticipants.length);
-
-    if (activeParticipants.length === 0) {
-      container.html(`
-        <tr>
-          <td colspan="3" class="text-center text-muted py-4">
-            <p>Chưa có người tham dự</p>
-          </td>
-        </tr>
-      `);
+    const q = $("#participant-search").val().trim().toLowerCase();
+    const active = state.participants.filter((p) => p.status === "active");
+    const list = q
+      ? active.filter((p) => p.name.toLowerCase().includes(q) || (p.email || "").includes(q))
+      : active;
+    $("#participant-count").text(active.length);
+    const tbody = $("#participants-list");
+    if (list.length === 0) {
+      tbody.html(`<tr><td class="text-center text-muted py-4">${q ? "Không tìm thấy" : "Chưa có người tham dự"}</td></tr>`);
       return;
     }
-
-    let html = "";
-    activeParticipants.forEach((participant, index) => {
-      html += `
-        <tr class="participant-item">
-          <td class="participant-id" style="width: 50px;">${index + 1}</td>
-          <td class="participant-name">${escapeHtml(participant.name)}</td>
-          <td style="width: 80px; text-align: right;">
-            <button type="button" class="btn btn-sm btn-outline-danger btn-delete" data-id="${
-              participant.id
-            }">
-              <i class="bi bi-trash"></i>
-            </button>
+    tbody.html(
+      list
+        .map(
+          (p, i) => `
+        <tr data-id="${esc(p.id)}">
+          <td class="text-muted" style="width:40px">${i + 1}</td>
+          <td><div class="participant-name">${esc(p.name)}</div>
+              ${p.email ? `<div class="small text-muted">${esc(p.email)}</div>` : `<div class="small text-warning-emphasis"><i class="bi bi-envelope-slash"></i> chưa có email</div>`}</td>
+          <td class="text-end text-nowrap" style="width:90px">
+            <button class="btn btn-sm btn-link text-dark p-1 edit-participant" title="Sửa"><i class="bi bi-pencil"></i></button>
+            <button class="btn btn-sm btn-link text-danger p-1 delete-participant" title="Xoá"><i class="bi bi-trash"></i></button>
           </td>
-        </tr>
-      `;
+        </tr>`
+        )
+        .join("")
+    );
+  }
+
+  $("#participant-search").on("input", () => state && renderParticipants());
+
+  $("#add-participant-form").on("submit", async function (e) {
+    e.preventDefault();
+    const res = await run(
+      "addParticipant",
+      { name: $("#participant-name").val(), email: $("#participant-email").val() },
+      "Đã thêm: " + $("#participant-name").val().trim(),
+      { quiet: true }
+    );
+    if (res) {
+      $("#participant-name").val("").trigger("focus");
+      $("#participant-email").val("");
+    }
+  });
+
+  $("#participants-list")
+    .on("click", ".delete-participant", async function () {
+      const id = $(this).closest("tr").data("id");
+      const p = state.participants.find((x) => x.id === id);
+      const ok = await confirmDialog({
+        title: "Xoá người tham dự",
+        html: `Xoá <strong>${esc(p.name)}</strong> khỏi danh sách?`,
+        buttons: [{ value: true, label: "Xoá", cls: "btn-danger" }],
+      });
+      if (ok) run("deleteParticipant", { id }, "Đã xoá " + p.name);
+    })
+    .on("click", ".edit-participant", function () {
+      const p = state.participants.find((x) => x.id === $(this).closest("tr").data("id"));
+      $("#edit-participant-id").val(p.id);
+      $("#edit-participant-name").val(p.name);
+      $("#edit-participant-email").val(p.email);
+      bootstrap.Modal.getOrCreateInstance(document.getElementById("editParticipantModal")).show();
     });
 
-    container.html(html);
+  $("#edit-participant-form").on("submit", async function (e) {
+    e.preventDefault();
+    const res = await run(
+      "updateParticipant",
+      { id: $("#edit-participant-id").val(), name: $("#edit-participant-name").val(), email: $("#edit-participant-email").val() },
+      "Đã cập nhật"
+    );
+    if (res) bootstrap.Modal.getInstance(document.getElementById("editParticipantModal")).hide();
+  });
+
+  $("#clear-participants").on("click", async function () {
+    const count = state.participants.filter((p) => p.status === "active").length;
+    if (!count) return showToast("Danh sách đang trống", "info");
+    const ok = await confirmDialog({
+      title: "Xoá tất cả người tham dự",
+      html: `Xoá <strong>${count}</strong> người chưa trúng thưởng? Người đã trúng vẫn được giữ lại.`,
+      buttons: [{ value: true, label: "Xoá tất cả", cls: "btn-danger" }],
+    });
+    if (ok) run("clearActiveParticipants", {}, "Đã xoá danh sách tham dự");
+  });
+
+  // ----- Import Excel / CSV: cột A = họ tên, cột B = email -----
+  const HEADER_NAMES = ["tên", "ten", "họ tên", "họ và tên", "name", "full name", "fullname", "stt"];
+
+  $("#import-btn").on("click", () => $("#import-file-input").val("").trigger("click"));
+
+  $("#import-file-input").on("change", async function () {
+    const file = this.files && this.files[0];
+    if (!file) return;
+    try {
+      const rows = await readRows(file);
+      if (rows.length && HEADER_NAMES.includes(String(rows[0][0] || "").trim().toLowerCase())) rows.shift();
+      const data = rows.map((r) => ({ name: String(r[0] ?? ""), email: String(r[1] ?? "") }));
+      const total = { added: 0, duplicate: 0, invalidEmail: 0, empty: 0, updated: 0 };
+      loading(true);
+      for (let i = 0; i < data.length; i += 1000) {
+        const res = await Api.action("importParticipants", { rows: data.slice(i, i + 1000) });
+        for (const k in total) total[k] += res.summary[k] || 0;
+        setState(res.state);
+      }
+      let msg = `Import xong: ${total.added} người được thêm`;
+      if (total.updated) msg += `, ${total.updated} người được bổ sung email`;
+      if (total.duplicate) msg += `, ${total.duplicate} trùng`;
+      if (total.invalidEmail) msg += `, ${total.invalidEmail} email sai định dạng (đã bỏ email)`;
+      if (total.empty) msg += `, ${total.empty} dòng thiếu tên`;
+      showToast(msg, total.added || total.updated ? "success" : "warning");
+    } catch (e) {
+      showToast(e.message, "danger");
+    } finally {
+      loading(false);
+    }
+  });
+
+  async function readRows(file) {
+    const name = file.name.toLowerCase();
+    if (name.endsWith(".xlsx")) {
+      if (typeof readXlsxFile !== "function") throw new Error("Không tải được thư viện đọc Excel");
+      let rows = await readXlsxFile(file);
+      if (rows.length && rows[0] && Array.isArray(rows[0].data)) rows = rows[0].data;
+      return trimEmpty(rows.map((r) => [cell(r && r[0]), cell(r && r[1])]));
+    }
+    if (name.endsWith(".xls")) throw new Error("File .xls (Excel 97-2003) chưa hỗ trợ. Lưu lại dạng .xlsx");
+    if (!name.endsWith(".csv")) throw new Error("Vui lòng chọn file Excel (.xlsx) hoặc CSV (.csv)");
+    const text = (await file.text()).replace(/^﻿/, "");
+    return trimEmpty(text.split(/\r?\n/).map(parseCsvLine));
+  }
+
+  function cell(v) {
+    return v === null || v === undefined ? "" : String(v);
+  }
+
+  function trimEmpty(rows) {
+    while (rows.length && !rows[rows.length - 1].join("").trim()) rows.pop();
+    return rows;
+  }
+
+  // Tách 1 dòng CSV (hỗ trợ ngoặc kép, phân cách , ; hoặc tab)
+  function parseCsvLine(line) {
+    const sep = line.includes("\t") ? "\t" : (line.split(";").length > line.split(",").length ? ";" : ",");
+    const out = [];
+    let cur = "";
+    let quoted = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (quoted) {
+        if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+        else if (ch === '"') quoted = false;
+        else cur += ch;
+      } else if (ch === '"') quoted = true;
+      else if (ch === sep) { out.push(cur); cur = ""; }
+      else cur += ch;
+    }
+    out.push(cur);
+    return out;
+  }
+
+  // ==================== NGƯỜI TRÚNG THƯỞNG ====================
+  const STATUS = {
+    pending: ['<span class="badge text-bg-warning">Chờ xác nhận</span>'],
+    confirmed: ['<span class="badge text-bg-success">Đã xác nhận</span>'],
+    cancelled: ['<span class="badge text-bg-secondary">Đã huỷ</span>'],
+  };
+
+  function emailBadge(w) {
+    if (!w.email) return '<span class="badge text-bg-light border"><i class="bi bi-envelope-slash"></i> Chưa có email</span>';
+    const last = w.emails[w.emails.length - 1];
+    if (!last) return '<span class="badge text-bg-light border"><i class="bi bi-envelope"></i> Chưa gửi</span>';
+    const label = last.type === "cancel" ? "thư xin lỗi" : "thông báo trúng";
+    if (last.ok) return `<span class="badge text-bg-info"><i class="bi bi-envelope-check"></i> Đã gửi ${label} ${formatTime(last.at)}</span>`;
+    return `<span class="badge text-bg-danger" title="${esc(last.error)}"><i class="bi bi-envelope-exclamation"></i> Gửi ${label} lỗi</span>`;
   }
 
   function renderWinners() {
-    const container = $("#winners-list");
+    const all = state.winners;
+    const filter = $("#winner-filter").val();
+    const now = state.serverTime || Date.now();
+    $("#winner-count").text(all.filter((w) => w.status !== "cancelled").length);
 
-    $("#winner-count").text(winners.length);
+    const pending = all.filter((w) => w.status === "pending");
+    $("#pending-banner").toggleClass("d-none", pending.length === 0);
+    $("#pending-count").text(pending.length);
+    $("#pending-hint").text(state.settings.autoEmail ? "Bấm Xác nhận sẽ tự gửi email thông báo." : "");
 
-    if (winners.length === 0) {
-      container.html(`
-        <div class="text-center text-muted py-4">
-          <p>Chưa có người trúng thưởng</p>
-        </div>
-      `);
+    const list = all
+      .map((w, i) => ({ w, i }))
+      .filter(({ w }) => !filter || w.status === filter)
+      .reverse(); // mới nhất lên đầu
+    if (list.length === 0) {
+      $("#winners-list").html('<div class="text-center text-muted py-4">Chưa có người trúng thưởng</div>');
       return;
     }
+    $("#winners-list").html(
+      list
+        .map(({ w, i }) => {
+          const prize = w.prize;
+          const hidden = (w.revealAt || 0) > now;
+          return `
+        <div class="winner-card ${w.status}" data-id="${esc(w.id)}">
+          <div class="d-flex gap-3">
+            <div class="winner-num">${i + 1}</div>
+            <div class="flex-grow-1 min-w-0">
+              <div class="d-flex flex-wrap align-items-center gap-2">
+                <strong class="winner-name">${esc(w.name)}</strong>
+                ${STATUS[w.status]}
+                ${hidden ? '<span class="badge text-bg-dark"><i class="bi bi-eye-slash"></i> Đang quay</span>' : ""}
+              </div>
+              <div class="small text-muted">${w.email ? esc(w.email) : "—"} · ${formatTime(w.wonAt)}</div>
+              <div class="small mt-1">
+                ${prize ? `<i class="bi bi-gift"></i> <strong>${esc(prize.name)}</strong>` : '<span class="text-muted">Không gắn giải</span>'}
+                ${w.code ? ` · Mã: <code class="user-select-all">${esc(w.code)}</code>` : ""}
+              </div>
+              <div class="mt-1">${emailBadge(w)}</div>
+            </div>
+          </div>
+          <div class="winner-actions">
+            ${w.status === "pending" ? `<button class="btn btn-sm btn-success w-confirm"><i class="bi bi-check2"></i> Xác nhận${state.settings.autoEmail && w.email ? " &amp; gửi mail" : ""}</button>` : ""}
+            <div class="btn-group btn-group-sm">
+              <button class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" ${w.email ? "" : "disabled"}>
+                <i class="bi bi-envelope"></i> Gửi email
+              </button>
+              <ul class="dropdown-menu">
+                <li><a class="dropdown-item w-send" data-type="win" href="#" ${w.status === "cancelled" ? 'aria-disabled="true"' : ""}>🎉 Thông báo trúng thưởng</a></li>
+                <li><a class="dropdown-item w-send" data-type="cancel" href="#">🙏 Thông báo huỷ và xin lỗi</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item w-preview" data-type="win" href="#"><i class="bi bi-eye"></i> Xem trước email trúng</a></li>
+                <li><a class="dropdown-item w-preview" data-type="cancel" href="#"><i class="bi bi-eye"></i> Xem trước email xin lỗi</a></li>
+              </ul>
+            </div>
+            <div class="btn-group btn-group-sm">
+              <button class="btn btn-outline-dark dropdown-toggle" data-bs-toggle="dropdown" aria-label="Thao tác khác"><i class="bi bi-three-dots"></i></button>
+              <ul class="dropdown-menu dropdown-menu-end">
+                ${w.status !== "cancelled" ? '<li><a class="dropdown-item w-cancel" href="#"><i class="bi bi-x-circle"></i> Huỷ kết quả (không gửi mail)</a></li>' : ""}
+                <li><a class="dropdown-item w-restore" href="#"><i class="bi bi-arrow-counterclockwise"></i> Trả về danh sách tham dự</a></li>
+                <li><a class="dropdown-item text-danger w-delete" href="#"><i class="bi bi-trash"></i> Xoá hẳn</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>`;
+        })
+        .join("")
+    );
+  }
 
-    let html = "";
-    winners.forEach((winner, index) => {
-      html += `
-        <div class="winner-item">
-          <span class="winner-badge"><i class="bi bi-trophy-fill"></i> #${
-            index + 1
-          }</span>
-          <span class="winner-name">${escapeHtml(winner.name)}</span>
-          <button type="button" class="btn btn-sm btn-outline-danger btn-delete-winner" data-index="${index}">
-            <i class="bi bi-trash"></i>
-          </button>
-        </div>
-      `;
+  $("#winner-filter").on("change", () => state && renderWinners());
+
+  const winnerById = (el) => state.winners.find((w) => w.id === $(el).closest(".winner-card").data("id"));
+
+  $("#winners-list")
+    .on("click", ".w-confirm", async function () {
+      const w = winnerById(this);
+      await run("confirmWinner", { id: w.id }, (res) =>
+        res.email ? (res.email.ok ? `Đã xác nhận và gửi email cho ${w.name}` : `Đã xác nhận, nhưng gửi email lỗi: ${res.email.error}`) : `Đã xác nhận ${w.name}`
+      );
+    })
+    .on("click", ".w-send", async function (e) {
+      e.preventDefault();
+      if ($(this).attr("aria-disabled")) return showToast("Kết quả đã huỷ, không gửi thông báo trúng thưởng", "warning");
+      const w = winnerById(this);
+      const type = $(this).data("type");
+      const isCancel = type === "cancel";
+      const prev = w.emails.filter((x) => x.ok && x.type === type).length;
+      const ok = await confirmDialog({
+        title: isCancel ? "Gửi thư huỷ và xin lỗi" : "Gửi thông báo trúng thưởng",
+        html: `Gửi tới <strong>${esc(w.name)}</strong> &lt;${esc(w.email)}&gt;?` +
+          (isCancel ? '<div class="alert alert-warning small mt-2 mb-0">Kết quả trúng của người này sẽ chuyển sang <strong>Đã huỷ</strong> và giải được trả lại.</div>' : "") +
+          (prev ? `<div class="small text-danger mt-2">Lưu ý: đã gửi email loại này ${prev} lần trước đó.</div>` : ""),
+        buttons: [{ value: true, label: "Gửi email", cls: isCancel ? "btn-warning" : "btn-return" }],
+      });
+      if (ok) run("sendWinnerEmail", { id: w.id, type }, `Đã gửi email tới ${w.email}`);
+    })
+    .on("click", ".w-preview", async function (e) {
+      e.preventDefault();
+      const w = winnerById(this);
+      const res = await run("previewEmail", { type: $(this).data("type"), winnerId: w.id }, null, { quiet: true });
+      if (res) showPreview(res.email);
+    })
+    .on("click", ".w-cancel", async function (e) {
+      e.preventDefault();
+      const w = winnerById(this);
+      const ok = await confirmDialog({
+        title: "Huỷ kết quả",
+        html: `Huỷ kết quả của <strong>${esc(w.name)}</strong> mà không gửi email? Giải được trả lại để quay tiếp.`,
+        buttons: [{ value: true, label: "Huỷ kết quả", cls: "btn-warning" }],
+      });
+      if (ok) run("cancelWinner", { id: w.id }, "Đã huỷ kết quả");
+    })
+    .on("click", ".w-restore", async function (e) {
+      e.preventDefault();
+      const w = winnerById(this);
+      const ok = await confirmDialog({
+        title: "Trả về danh sách tham dự",
+        html: `Xoá kết quả của <strong>${esc(w.name)}</strong> và cho người này tham gia các lượt quay sau?`,
+        buttons: [{ value: true, label: "Trả về", cls: "btn-return" }],
+      });
+      if (ok) run("restoreWinner", { id: w.id }, `${w.name} đã quay lại danh sách tham dự`);
+    })
+    .on("click", ".w-delete", async function (e) {
+      e.preventDefault();
+      const w = winnerById(this);
+      const ok = await confirmDialog({
+        title: "Xoá hẳn",
+        html: `Xoá <strong>${esc(w.name)}</strong> khỏi cả danh sách trúng thưởng và danh sách tham dự?`,
+        buttons: [{ value: true, label: "Xoá", cls: "btn-danger" }],
+      });
+      if (ok) run("deleteWinner", { id: w.id }, "Đã xoá");
     });
 
-    container.html(html);
-  }
+  $("#confirm-all").on("click", async function () {
+    const pending = state.winners.filter((w) => w.status === "pending");
+    const withMail = state.settings.autoEmail ? pending.filter((w) => w.email).length : 0;
+    const ok = await confirmDialog({
+      title: "Xác nhận tất cả",
+      html: `Xác nhận <strong>${pending.length}</strong> người trúng?` + (withMail ? ` Sẽ gửi <strong>${withMail}</strong> email thông báo.` : ""),
+      buttons: [{ value: true, label: "Xác nhận tất cả", cls: "btn-success" }],
+    });
+    if (!ok) return;
+    loading(true);
+    let sent = 0, failed = 0;
+    for (const w of pending) {
+      try {
+        const res = await Api.action("confirmWinner", { id: w.id });
+        if (res.email) res.email.ok ? sent++ : failed++;
+        setState(res.state);
+      } catch (e) {
+        failed++;
+      }
+    }
+    loading(false);
+    showToast(`Đã xác nhận ${pending.length} người` + (sent || failed ? ` · gửi email: ${sent} thành công, ${failed} lỗi` : ""), failed ? "warning" : "success");
+  });
 
-  // ==================== DATA PERSISTENCE ====================
+  $("#clear-winners").on("click", async function () {
+    if (!state.winners.length) return showToast("Chưa có người trúng thưởng", "info");
+    const mode = await confirmDialog({
+      title: "Xoá tất cả người trúng thưởng",
+      html: `Có <strong>${state.winners.length}</strong> kết quả. Bạn muốn:`,
+      buttons: [
+        { value: "restore", label: "Trả tất cả về danh sách tham dự", cls: "btn-return" },
+        { value: "delete", label: "Xoá hẳn", cls: "btn-danger" },
+      ],
+    });
+    if (mode) run("clearWinners", { mode }, mode === "restore" ? "Đã trả tất cả về danh sách tham dự" : "Đã xoá tất cả người trúng");
+  });
 
-  function saveDataToLocalStorage() {
-    localStorage.setItem(
-      "luckydraw_participants",
-      JSON.stringify(participants)
+  $("#export-winners").on("click", function () {
+    const status = { pending: "Chờ xác nhận", confirmed: "Đã xác nhận", cancelled: "Đã huỷ" };
+    const rows = [["Lượt", "Họ tên", "Email", "Giải", "Mã giảm giá", "Trạng thái", "Thời gian trúng", "Email đã gửi"]];
+    state.winners.forEach((w, i) =>
+      rows.push([
+        i + 1, w.name, w.email, w.prize ? w.prize.name : "", w.code, status[w.status],
+        new Date(w.wonAt).toLocaleString("vi-VN"),
+        w.emails.filter((e) => e.ok).map((e) => (e.type === "cancel" ? "Xin lỗi" : "Trúng thưởng")).join(", "),
+      ])
     );
-    localStorage.setItem("luckydraw_winners", JSON.stringify(winners));
+    const csv = "﻿" + rows.map((r) => r.map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(",")).join("\r\n");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    a.download = "danh-sach-trung-thuong.csv";
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+
+  function showPreview(email) {
+    $("#preview-subject").text(email.subject);
+    document.getElementById("preview-frame").srcdoc = email.html;
+    bootstrap.Modal.getOrCreateInstance(document.getElementById("previewModal")).show();
   }
 
-  function loadDataFromLocalStorage() {
-    const savedParticipants = localStorage.getItem("luckydraw_participants");
-    const savedWinners = localStorage.getItem("luckydraw_winners");
-
-    if (savedParticipants) {
-      try {
-        participants = JSON.parse(savedParticipants);
-      } catch (e) {
-        console.error("Error loading participants:", e);
-        participants = [];
-      }
-    }
-
-    if (savedWinners) {
-      try {
-        winners = JSON.parse(savedWinners);
-      } catch (e) {
-        console.error("Error loading winners:", e);
-        winners = [];
-      }
-    }
-  }
-
-  function syncDataToServer() {
-    const SCRIPT_URL = getScriptUrl();
-    if (!SCRIPT_URL) {
-      showToast("Chưa cấu hình Google Sheet. Làm theo hướng dẫn để kết nối.", "warning");
-      openGsheetSetup();
+  // ==================== GIẢI THƯỞNG ====================
+  function renderPrizes() {
+    const list = $("#prizes-list");
+    if (!state.prizes.length) {
+      list.html('<div class="col-12 text-center text-muted py-4">Chưa có giải nào. Bấm <strong>Thêm giải</strong> để tạo.</div>');
       return;
     }
+    list.html(
+      state.prizes
+        .map((p, i) => {
+          const current = p.id === state.currentPrizeId;
+          const left = p.remaining === null ? "Không giới hạn" : `Còn <strong>${p.remaining}</strong>/${p.quantity}`;
+          const typeLabel = p.type === "code"
+            ? `<span class="badge text-bg-info"><i class="bi bi-ticket-perforated"></i> Mã giảm giá${p.discountText ? " " + esc(p.discountText) : ""}</span>`
+            : '<span class="badge text-bg-light border"><i class="bi bi-gift"></i> Hiện vật</span>';
+          const codeInfo = p.type === "code"
+            ? `<div class="small text-muted">${p.codeMode === "fixed" ? `Mã chung: <code>${esc(p.codeFixed)}</code>` : `Mã riêng: <code>${esc(p.codePrefix)}${"X".repeat(p.codeLength)}</code>`}</div>`
+            : "";
+          return `
+          <div class="col-md-6 col-xl-4">
+            <div class="prize-card-admin ${current ? "current" : ""}" data-id="${esc(p.id)}">
+              <div class="d-flex gap-3">
+                <div class="prize-thumb">${p.imageId ? `<img src="${Api.imageUrl(p.imageId)}" alt="">` : '<i class="bi bi-gift"></i>'}</div>
+                <div class="flex-grow-1 min-w-0">
+                  <div class="fw-bold">${esc(p.name)}</div>
+                  <div class="small">${left}</div>
+                  <div class="mt-1">${typeLabel}</div>
+                  ${codeInfo}
+                </div>
+              </div>
+              <div class="d-flex gap-1 mt-3 flex-wrap">
+                ${current ? '<span class="badge text-bg-success align-self-center me-auto"><i class="bi bi-bullseye"></i> Đang quay</span>' : '<button class="btn btn-sm btn-outline-success me-auto p-set-current">Quay giải này</button>'}
+                <button class="btn btn-sm btn-light p-move" data-dir="up" ${i === 0 ? "disabled" : ""} title="Lên"><i class="bi bi-arrow-up"></i></button>
+                <button class="btn btn-sm btn-light p-move" data-dir="down" ${i === state.prizes.length - 1 ? "disabled" : ""} title="Xuống"><i class="bi bi-arrow-down"></i></button>
+                <button class="btn btn-sm btn-light p-edit" title="Sửa"><i class="bi bi-pencil"></i></button>
+                <button class="btn btn-sm btn-light text-danger p-delete" title="Xoá"><i class="bi bi-trash"></i></button>
+              </div>
+            </div>
+          </div>`;
+        })
+        .join("")
+    );
+  }
 
-    showLoading(true);
+  const prizeOf = (el) => state.prizes.find((p) => p.id === $(el).closest(".prize-card-admin").data("id"));
 
-    const data = {
-      action: "sync",
-      participants: participants,
-      winners: winners,
-    };
-
-    // Gửi dạng text/plain để không phát sinh CORS preflight với Apps Script,
-    // nhờ vậy đọc được phản hồi và biết đồng bộ thành công hay thất bại.
-    fetch(SCRIPT_URL, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify(data),
+  $("#prizes-list")
+    .on("click", ".p-set-current", function () {
+      const p = prizeOf(this);
+      run("setCurrentPrize", { id: p.id }, `Đang quay: ${p.name}`);
     })
-      .then((res) => {
-        if (!res.ok) throw new Error("HTTP " + res.status);
-        return res.json();
-      })
-      .then((result) => {
-        showLoading(false);
-        if (result && result.success && result.message === "Đã đồng bộ") {
-          showToast(
-            `Đã đồng bộ lên Google Sheets: ${result.participants} người tham dự, ${result.winners} người trúng`,
-            "success"
-          );
-        } else {
-          const reason = (result && result.error) || "Apps Script chưa hỗ trợ action sync";
-          showToast("Đồng bộ thất bại: " + reason + ". Xem lại mục Cài đặt Google Sheet.", "danger");
-        }
-      })
-      .catch((error) => {
-        showLoading(false);
-        console.error("Sync error:", error);
-        showToast("Không thể đồng bộ. Dữ liệu vẫn được lưu cục bộ.", "warning");
+    .on("click", ".p-move", function () {
+      run("movePrize", { id: prizeOf(this).id, direction: $(this).data("dir") }, null);
+    })
+    .on("click", ".p-edit", function () {
+      openPrizeModal(prizeOf(this));
+    })
+    .on("click", ".p-delete", async function () {
+      const p = prizeOf(this);
+      const ok = await confirmDialog({
+        title: "Xoá giải",
+        html: `Xoá giải <strong>${esc(p.name)}</strong>? Người đã trúng giải này vẫn giữ nguyên kết quả.`,
+        buttons: [{ value: true, label: "Xoá", cls: "btn-danger" }],
       });
+      if (ok) run("deletePrize", { id: p.id }, "Đã xoá giải");
+    });
+
+  let prizeImageId = null;
+
+  $("#add-prize").on("click", () => openPrizeModal(null));
+
+  function openPrizeModal(p) {
+    $("#prize-modal-title").text(p ? "Sửa giải" : "Thêm giải");
+    $("#prize-id").val(p ? p.id : "");
+    $("#prize-name").val(p ? p.name : "");
+    $("#prize-quantity").val(p ? p.quantity : 1);
+    $("#prize-description").val(p ? p.description : "");
+    $(`input[name=prize-type][value=${p ? p.type : "gift"}]`).prop("checked", true);
+    $("#prize-discount").val(p ? p.discountText : "");
+    $(`input[name=code-mode][value=${p ? p.codeMode : "random"}]`).prop("checked", true);
+    $("#prize-code-prefix").val(p ? p.codePrefix : "");
+    $("#prize-code-length").val(p ? p.codeLength : 6);
+    $("#prize-code-fixed").val(p ? p.codeFixed : "");
+    prizeImageId = p ? p.imageId : null;
+    updatePrizeForm();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById("prizeModal")).show();
   }
 
-  // Cho các script khác (theme-settings.js) dùng chung kiểu thông báo
-  window.showDashboardToast = showToast;
-
-  // ==================== GOOGLE SHEET SETUP ====================
-
-  $("#apps-script-code").text(window.APPS_SCRIPT_CODE || "// Không tải được gsheet-setup.js");
-  renderGsheetStatus();
-
-  $("#open-gsheet-setup").click(openGsheetSetup);
-
-  function openGsheetSetup() {
-    $("#gsheet-url-input").val(getSavedScriptUrl());
-    setGsheetMessage("");
-    renderGsheetStatus();
-    bootstrap.Modal.getOrCreateInstance(document.getElementById("gsheetSetupModal")).show();
+  function updatePrizeForm() {
+    const isCode = $("input[name=prize-type]:checked").val() === "code";
+    const fixed = $("input[name=code-mode]:checked").val() === "fixed";
+    $("#prize-code-fields").toggleClass("d-none", !isCode);
+    $(".code-random").toggleClass("d-none", fixed);
+    $(".code-fixed").toggleClass("d-none", !fixed);
+    const len = Math.max(4, Math.min(12, parseInt($("#prize-code-length").val(), 10) || 6));
+    $("#prize-code-example").text(($("#prize-code-prefix").val() || "").replace(/\s/g, "") + "K7M2QX9PWR4H".slice(0, len));
+    $("#prize-image-preview").attr("src", prizeImageId ? Api.imageUrl(prizeImageId) : "").toggle(!!prizeImageId);
+    $("#prize-no-image").toggle(!prizeImageId);
+    $("#prize-image-remove").prop("disabled", !prizeImageId);
   }
 
-  function renderGsheetStatus() {
-    const saved = getSavedScriptUrl();
-    const url = getScriptUrl();
-    $("#gsheet-current-url").text(
-      url ? url + (saved ? "" : " (mặc định trong code)") : "(chưa cấu hình)"
-    );
-    $("#clear-gsheet-url").toggleClass("d-none", !saved);
-  }
+  $("#prize-form").on("input change", "input", updatePrizeForm);
+  $("#prize-image-btn").on("click", () => $("#prize-image-input").val("").trigger("click"));
+  $("#prize-image-remove").on("click", () => {
+    prizeImageId = null;
+    updatePrizeForm();
+  });
 
-  function setGsheetMessage(text, type) {
-    const cls = type === "success" ? "text-success" : type === "danger" ? "text-danger" : "text-muted";
-    $("#gsheet-url-message").attr("class", "small mb-2 " + cls).text(text);
-  }
-
-  // Chấp nhận dán cả dòng: const SCRIPT_URL = "https://.../exec";
-  function readUrlInput() {
-    const raw = $("#gsheet-url-input").val().trim();
-    const match = raw.match(SCRIPT_URL_PATTERN);
-    return match ? match[0] : null;
-  }
-
-  $("#save-gsheet-url").click(function () {
-    const url = readUrlInput();
-    if (!url) {
-      setGsheetMessage(
-        "URL không hợp lệ. URL đúng có dạng https://script.google.com/macros/s/.../exec",
-        "danger"
-      );
-      return;
-    }
+  $("#prize-image-input").on("change", async function () {
+    const file = this.files && this.files[0];
+    if (!file) return;
+    loading(true);
     try {
-      localStorage.setItem(SCRIPT_URL_KEY, url);
+      const blob = await Api.prepareImage(file, { maxWidth: 800, maxHeight: 800 });
+      const res = await Api.uploadImage(blob);
+      prizeImageId = res.id;
+      updatePrizeForm();
     } catch (e) {
-      setGsheetMessage("Trình duyệt không cho lưu dữ liệu (đang ở chế độ ẩn danh?)", "danger");
-      return;
+      showToast(e.message, "danger");
+    } finally {
+      loading(false);
     }
-    $("#gsheet-url-input").val(url);
-    renderGsheetStatus();
-    setGsheetMessage("Đã lưu. Bấm Kiểm tra để thử kết nối.", "success");
-    showToast("Đã lưu URL Google Sheet", "success");
   });
 
-  $("#test-gsheet-url").click(function () {
-    const url = readUrlInput() || getScriptUrl();
-    if (!url) {
-      setGsheetMessage("Chưa có URL để kiểm tra", "danger");
-      return;
+  $("#prize-form").on("submit", async function (e) {
+    e.preventDefault();
+    const prize = {
+      id: $("#prize-id").val() || undefined,
+      name: $("#prize-name").val(),
+      quantity: $("#prize-quantity").val(),
+      description: $("#prize-description").val(),
+      type: $("input[name=prize-type]:checked").val(),
+      imageId: prizeImageId,
+      discountText: $("#prize-discount").val(),
+      codeMode: $("input[name=code-mode]:checked").val(),
+      codePrefix: $("#prize-code-prefix").val(),
+      codeLength: $("#prize-code-length").val(),
+      codeFixed: $("#prize-code-fixed").val(),
+    };
+    const res = await run("savePrize", { prize }, prize.id ? "Đã cập nhật giải" : "Đã thêm giải");
+    if (res) bootstrap.Modal.getInstance(document.getElementById("prizeModal")).hide();
+  });
+
+  // ==================== EMAIL & GOOGLE SHEET ====================
+  function fillSettingsForms() {
+    const s = state.settings;
+    $("#set-event-name").val(s.eventName);
+    $("#set-sender-name").val(s.senderName);
+    $("#set-auto-email").prop("checked", s.autoEmail);
+    $("#script-url").val(s.scriptUrl);
+    for (const type of ["win", "cancel"]) {
+      $(`#tpl-${type}-subject`).val(s.templates[type].subject);
+      $(`#tpl-${type}-body`).val(s.templates[type].body);
     }
-    const btn = $(this).prop("disabled", true);
-    setGsheetMessage("Đang kiểm tra...");
-    fetch(url)
-      .then((res) => res.json())
-      .then((result) => {
-        if (result && result.success && result.message === "Lucky Draw API is running") {
-          setGsheetMessage("✔ Kết nối thành công. Có thể bấm Đồng bộ Google Sheet.", "success");
-        } else {
-          throw new Error("unexpected");
-        }
-      })
-      .catch(() => {
-        setGsheetMessage(
-          "✘ Không kết nối được. Kiểm tra: đã dán đúng code mới, triển khai dạng Ứng dụng web, quyền truy cập 'Bất kỳ ai'.",
-          "danger"
-        );
-      })
-      .finally(() => btn.prop("disabled", false));
+  }
+
+  function renderScriptStatus() {
+    const badge = $("#script-status");
+    if (state.settings.scriptUrl) badge.attr("class", "badge text-bg-success").text("Đã có URL");
+    else badge.attr("class", "badge text-bg-warning").text("Chưa kết nối");
+  }
+
+  let appsScriptTemplate = null;
+  async function renderAppsScriptCode() {
+    if (appsScriptTemplate === null) {
+      appsScriptTemplate = "";
+      try {
+        const res = await fetch("/apps-script/Code.gs", { cache: "no-cache" });
+        appsScriptTemplate = await res.text();
+      } catch (e) {
+        appsScriptTemplate = "// Không tải được code. Tải lại trang để thử lại.";
+      }
+    }
+    if (appsScriptTemplate) $("#apps-script-code").text(appsScriptCode());
+  }
+
+  function appsScriptCode() {
+    return (appsScriptTemplate || "").replace("{{SECRET}}", state.settings.secret);
+  }
+
+  $("#copy-apps-script").on("click", function () {
+    copyText(appsScriptCode(), $(this), '<i class="bi bi-clipboard"></i> Sao chép code');
   });
 
-  $("#clear-gsheet-url").click(function () {
-    try {
-      localStorage.removeItem(SCRIPT_URL_KEY);
-    } catch (e) {}
-    $("#gsheet-url-input").val("");
-    renderGsheetStatus();
-    setGsheetMessage("Đã xoá URL đã lưu.");
-  });
-
-  $("#copy-apps-script").click(function () {
-    const code = window.APPS_SCRIPT_CODE || "";
-    const btn = $(this);
+  function copyText(text, btn, originalHtml) {
     const done = () => {
-      btn.html('<i class="bi bi-check2"></i> Đã sao chép');
-      setTimeout(() => btn.html('<i class="bi bi-clipboard"></i> Sao chép code'), 2000);
+      if (btn) {
+        btn.html('<i class="bi bi-check2"></i> Đã sao chép');
+        setTimeout(() => btn.html(originalHtml), 2000);
+      } else showToast("Đã sao chép", "success");
     };
     const fallback = () => {
-      const ta = $("<textarea>").val(code).css({ position: "fixed", opacity: 0 }).appendTo("body");
+      const ta = $("<textarea>").val(text).css({ position: "fixed", opacity: 0 }).appendTo("body");
       ta[0].select();
       try {
         document.execCommand("copy");
         done();
       } catch (e) {
-        showToast("Không sao chép được, hãy bôi đen code và nhấn Ctrl+C", "warning");
+        showToast("Không sao chép được, hãy bôi đen và nhấn Ctrl+C", "warning");
       }
       ta.remove();
     };
-    if (navigator.clipboard && window.isSecureContext) {
-      navigator.clipboard.writeText(code).then(done, fallback);
-    } else {
-      fallback();
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, fallback);
+    else fallback();
+  }
+
+  $("#settings-form").on("submit", function (e) {
+    e.preventDefault();
+    run(
+      "saveSettings",
+      { settings: { eventName: $("#set-event-name").val(), senderName: $("#set-sender-name").val(), autoEmail: $("#set-auto-email").prop("checked") } },
+      "Đã lưu cài đặt"
+    );
+  });
+
+  $("#save-script-url").on("click", () =>
+    run("saveSettings", { settings: { scriptUrl: $("#script-url").val() } }, "Đã lưu URL Apps Script").then((res) => {
+      if (res) $("#script-url").val(res.state.settings.scriptUrl);
+    })
+  );
+
+  $("#test-script").on("click", async () => {
+    // Lưu URL đang nhập (nếu khác) rồi kiểm tra
+    if ($("#script-url").val().trim() !== state.settings.scriptUrl) {
+      const saved = await run("saveSettings", { settings: { scriptUrl: $("#script-url").val() } }, null);
+      if (!saved) return;
+    }
+    run("testAppsScript", {}, (res) => res.message);
+  });
+
+  $("#send-test-email").on("click", () => run("sendTestEmail", { to: $("#test-email-to").val() }, (res) => res.message));
+  $("#sync-sheet").on("click", () => run("syncSheet", {}, (res) => res.message));
+
+  $("#regen-secret").on("click", async () => {
+    const ok = await confirmDialog({
+      title: "Đổi mã bí mật",
+      html: "Sau khi đổi, phải <strong>sao chép lại code</strong> vào Apps Script và <strong>triển khai phiên bản mới</strong>, nếu không sẽ không gửi được email.",
+      buttons: [{ value: true, label: "Đổi mã", cls: "btn-danger" }],
+    });
+    if (ok) run("regenerateSecret", {}, "Đã đổi mã bí mật — nhớ cập nhật lại code Apps Script");
+  });
+
+  function templatesFromForm() {
+    return {
+      win: { subject: $("#tpl-win-subject").val(), body: $("#tpl-win-body").val() },
+      cancel: { subject: $("#tpl-cancel-subject").val(), body: $("#tpl-cancel-body").val() },
+    };
+  }
+
+  $("#save-templates").on("click", () => run("saveSettings", { settings: { templates: templatesFromForm() } }, "Đã lưu mẫu email"));
+
+  $("#preview-template").on("click", async () => {
+    const type = $("#tpl-cancel").hasClass("active") ? "cancel" : "win";
+    const res = await run("previewEmail", { type, templates: templatesFromForm() }, null, { quiet: true });
+    if (res) showPreview(res.email);
+  });
+
+  $("#reset-templates").on("click", async () => {
+    const ok = await confirmDialog({
+      title: "Khôi phục mẫu mặc định",
+      html: "Thay cả 2 mẫu email bằng nội dung mặc định?",
+      buttons: [{ value: true, label: "Khôi phục", cls: "btn-warning" }],
+    });
+    if (!ok) return;
+    const res = await run("saveSettings", { settings: { resetTemplates: true } }, "Đã khôi phục mẫu mặc định");
+    if (res) fillSettingsForms();
+  });
+
+  // ==================== GIAO DIỆN ====================
+  const IMAGE_SLOTS = {
+    background: { label: "Ảnh nền", hint: "Khuyên dùng 1920×1080, JPG hoặc PNG.", opts: { maxWidth: 1920, maxHeight: 1080, opaque: true } },
+    title: { label: "Ảnh tiêu đề", hint: "PNG nền trong suốt, khung ngang (vd 3000×1000).", opts: { maxWidth: 2000, maxHeight: 800 } },
+    arrow: { label: "Nút mũi tên (giữa vòng quay)", hint: "PNG vuông, nền trong suốt; mũi tên ở chính giữa cạnh trên. Nên cùng kích thước với ảnh vành.", opts: { maxWidth: 1400, maxHeight: 1400 } },
+    frame: { label: "Vành vòng quay", hint: "PNG vuông, nền trong suốt, giữa trong suốt để thấy các ô.", opts: { maxWidth: 1400, maxHeight: 1400 } },
+  };
+
+  const COLOR_FIELDS = [
+    { key: "segment1", label: "Màu ô lẻ" },
+    { key: "text1", label: "Chữ trên ô lẻ" },
+    { key: "segment2", label: "Màu ô chẵn" },
+    { key: "text2", label: "Chữ trên ô chẵn" },
+    { key: "center", label: "Vòng tròn ở tâm" },
+    { key: "centerText", label: "Chữ ở tâm" },
+  ];
+
+  const PRESETS = [
+    { name: "Xanh lá (mặc định)", colors: Api.DEFAULT_COLORS },
+    { name: "Đỏ Tết", colors: { segment1: "#fff4d6", text1: "#b71c1c", segment2: "#c62828", text2: "#ffe082", center: "#b71c1c", centerText: "#ffe082" } },
+    { name: "Xanh dương", colors: { segment1: "#e3f2fd", text1: "#0d47a1", segment2: "#1565c0", text2: "#ffffff", center: "#0d47a1", centerText: "#e3f2fd" } },
+    { name: "Tím", colors: { segment1: "#f3e5f5", text1: "#4a148c", segment2: "#6a1b9a", text2: "#ffffff", center: "#4a148c", centerText: "#f3e5f5" } },
+    { name: "Cam", colors: { segment1: "#fff3e0", text1: "#e65100", segment2: "#ef6c00", text2: "#ffffff", center: "#e65100", centerText: "#fff3e0" } },
+    { name: "Vàng đen", colors: { segment1: "#ffd54f", text1: "#212121", segment2: "#212121", text2: "#ffd54f", center: "#212121", centerText: "#ffd54f" } },
+  ];
+
+  let previewColors = null;
+
+  (function buildThemeUi() {
+    const images = $("#theme-images");
+    Object.keys(IMAGE_SLOTS).forEach((key) => {
+      const card = $(`
+        <div class="col-6 col-lg-3">
+          <div class="theme-image-card" data-key="${key}">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="small fw-semibold"></span>
+              <span class="badge bg-success d-none">Đã đổi</span>
+            </div>
+            <div class="theme-image-preview"><img alt=""></div>
+            <div class="small text-muted mb-2 flex-grow-1"></div>
+            <input type="file" accept="image/*" class="d-none">
+            <div class="d-flex gap-2">
+              <button type="button" class="btn btn-sm btn-return flex-grow-1 theme-upload"><i class="bi bi-upload"></i> Chọn ảnh</button>
+              <button type="button" class="btn btn-sm btn-outline-dark theme-reset-image" title="Dùng ảnh mặc định"><i class="bi bi-arrow-counterclockwise"></i></button>
+            </div>
+          </div>
+        </div>`);
+      card.find(".fw-semibold").text(IMAGE_SLOTS[key].label);
+      card.find(".text-muted").text(IMAGE_SLOTS[key].hint);
+      images.append(card);
+    });
+
+    COLOR_FIELDS.forEach((f) => {
+      const item = $(`<div class="col-sm-6"><label class="theme-color-item"><input type="color" class="form-control form-control-color"><span></span></label></div>`);
+      item.find("input").attr("data-key", f.key);
+      item.find("span").text(f.label);
+      $("#theme-colors").append(item);
+    });
+
+    PRESETS.forEach((preset, i) => {
+      const btn = $('<button type="button" class="btn btn-sm btn-outline-secondary theme-preset"><span class="swatch"></span><span class="swatch"></span><span class="name"></span></button>');
+      btn.attr("data-index", i);
+      btn.find(".swatch").eq(0).css("background", preset.colors.segment1);
+      btn.find(".swatch").eq(1).css("background", preset.colors.segment2);
+      btn.find(".name").text(preset.name);
+      $("#theme-presets").append(btn);
+    });
+  })();
+
+  function renderThemeImages() {
+    const images = state.theme.images;
+    Object.keys(IMAGE_SLOTS).forEach((key) => {
+      const card = $(`.theme-image-card[data-key="${key}"]`);
+      const src = Api.imageUrl(images[key], key);
+      if (card.find("img").attr("src") !== src) card.find("img").attr("src", src);
+      card.find(".badge").toggleClass("d-none", !images[key]);
+      card.find(".theme-reset-image").prop("disabled", !images[key]);
+    });
+    // Màu: chỉ cập nhật ô chọn màu khi người dùng không đang kéo
+    previewColors = Api.colors(state.theme);
+    $("#theme-colors input[type=color]").each(function () {
+      if (document.activeElement !== this) $(this).val(previewColors[$(this).data("key")]);
+    });
+    renderColorPreview();
+    Api.applyTheme(state.theme); // ảnh nền của chính Dashboard
+  }
+
+  $("#theme-images")
+    .on("click", ".theme-upload", function () {
+      $(this).closest(".theme-image-card").find("input[type=file]").val("").trigger("click");
+    })
+    .on("change", "input[type=file]", async function () {
+      const file = this.files && this.files[0];
+      if (!file) return;
+      const key = $(this).closest(".theme-image-card").data("key");
+      loading(true);
+      try {
+        const blob = await Api.prepareImage(file, IMAGE_SLOTS[key].opts);
+        const up = await Api.uploadImage(blob);
+        await run("saveTheme", { images: { [key]: up.id } }, "Đã đổi " + IMAGE_SLOTS[key].label.toLowerCase(), { quiet: true });
+      } catch (e) {
+        showToast(e.message, "danger");
+      } finally {
+        loading(false);
+      }
+    })
+    .on("click", ".theme-reset-image", function () {
+      const key = $(this).closest(".theme-image-card").data("key");
+      run("saveTheme", { images: { [key]: null } }, "Đã dùng lại ảnh mặc định");
+    });
+
+  $("#theme-colors")
+    .on("input", "input[type=color]", function () {
+      previewColors[$(this).data("key")] = $(this).val();
+      renderColorPreview();
+    })
+    .on("change", "input[type=color]", function () {
+      run("saveTheme", { colors: { [$(this).data("key")]: $(this).val() } }, null, { quiet: true });
+    });
+
+  $("#theme-presets").on("click", ".theme-preset", function () {
+    run("saveTheme", { colors: PRESETS[$(this).data("index")].colors }, "Đã áp dụng bảng màu", { quiet: true });
+  });
+
+  $("#reset-theme-colors").on("click", () => run("saveTheme", { colors: null }, "Đã dùng màu mặc định", { quiet: true }));
+
+  function renderColorPreview() {
+    const c = previewColors;
+    const n = 8, cx = 250, cy = 250, r = 240;
+    const names = ["Minh Anh", "Bảo Châu", "Gia Huy", "Thu Hà", "Quốc Khánh", "Lan Anh", "Đức Long", "Ngọc Mai"];
+    let svg = "";
+    for (let i = 0; i < n; i++) {
+      const a1 = ((i * 360) / n - 90) * (Math.PI / 180);
+      const a2 = (((i + 1) * 360) / n - 90) * (Math.PI / 180);
+      svg += `<path d="M ${cx},${cy} L ${cx + r * Math.cos(a1)},${cy + r * Math.sin(a1)} A ${r},${r} 0 0 1 ${cx + r * Math.cos(a2)},${cy + r * Math.sin(a2)} Z" fill="${i % 2 ? c.segment2 : c.segment1}" stroke="rgba(0,0,0,.08)"/>`;
+      const ta = (i + 0.5) * (360 / n);
+      const tr = (ta - 90) * (Math.PI / 180);
+      const tx = cx + r * 0.65 * Math.cos(tr), ty = cy + r * 0.65 * Math.sin(tr);
+      svg += `<text x="${tx}" y="${ty}" fill="${i % 2 ? c.text2 : c.text1}" font-size="24" font-weight="600" text-anchor="middle" dominant-baseline="middle" transform="rotate(${ta + 90}, ${tx}, ${ty})">${names[i]}</text>`;
+    }
+    svg += `<circle cx="${cx}" cy="${cy}" r="40" fill="${c.center}"/><text x="${cx}" y="${cy}" fill="${c.centerText}" font-size="24" font-weight="bold" text-anchor="middle" dominant-baseline="middle">EZ</text>`;
+    $("#theme-preview").html(svg);
+  }
+
+  // ==================== DỮ LIỆU ====================
+  // Dữ liệu của bản cũ (lưu trong trình duyệt)
+  let legacy = null;
+  try {
+    const p = JSON.parse(localStorage.getItem("luckydraw_participants") || "[]");
+    const w = JSON.parse(localStorage.getItem("luckydraw_winners") || "[]");
+    if (Array.isArray(p) && p.length) legacy = { participants: p, winners: Array.isArray(w) ? w : [] };
+  } catch (e) {}
+  if (legacy) {
+    $("#legacy-card").removeClass("d-none");
+    $("#legacy-count").text(legacy.participants.length);
+  }
+
+  $("#migrate-legacy").on("click", async function () {
+    const res = await run("migrateLegacy", legacy, (r) => `Đã nhập ${r.summary.added} người từ bản cũ`);
+    if (res) {
+      try {
+        localStorage.removeItem("luckydraw_participants");
+        localStorage.removeItem("luckydraw_winners");
+      } catch (e) {}
+      $("#legacy-card").addClass("d-none");
     }
   });
 
-  // ==================== UTILITY FUNCTIONS ====================
+  $("#reset-all-data").on("click", async function () {
+    const ok = await confirmDialog({
+      title: "Xoá toàn bộ dữ liệu",
+      html: `Xoá <strong>tất cả</strong> người tham dự và người trúng thưởng? Không thể hoàn tác.
+             <input type="text" class="form-control mt-3" id="reset-confirm-input" placeholder="Gõ XOA để xác nhận">`,
+      buttons: [{ value: true, label: "Xoá toàn bộ", cls: "btn-danger" }],
+    });
+    if (!ok) return;
+    const typed = ($("#reset-confirm-input").val() || "").trim().toUpperCase();
+    if (typed !== "XOA") return showToast("Chưa gõ XOA, đã huỷ thao tác", "warning");
+    run("resetAllData", { confirm: "XOA" }, "Đã xoá toàn bộ người tham dự và người trúng thưởng");
+  });
 
-  function showLoading(show) {
-    if (show) {
-      $("#loading-overlay").removeClass("d-none");
-    } else {
-      $("#loading-overlay").addClass("d-none");
-    }
+  // ==================== THANH TRÊN ====================
+  $("#copy-board-link").on("click", function () {
+    copyText(location.origin + "/bang-danh-sach/", null);
+  });
+
+  $("#logout").on("click", async function () {
+    try {
+      await Api.logout();
+    } catch (e) {}
+    location.href = "/login";
+  });
+
+  // Mở đúng tab khi tải lại trang (#tab-prizes ...)
+  if (location.hash && $(`[data-bs-target="${location.hash}"]`).length) {
+    bootstrap.Tab.getOrCreateInstance($(`[data-bs-target="${location.hash}"]`)[0]).show();
   }
+  $(".admin-tabs [data-bs-toggle=pill]").on("shown.bs.tab", function () {
+    history.replaceState(null, "", $(this).data("bs-target"));
+  });
 
-  function showToast(message, type = "info") {
-    // Simple toast notification
-    const bgColor =
-      type === "success"
-        ? "#246d4b"
-        : type === "warning"
-        ? "#ffc107"
-        : type === "danger"
-        ? "#dc3545"
-        : "#246d4b";
-
-    const toast = $(`
-      <div class="toast-notification" style="
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: ${bgColor};
-        color: white;
-        padding: 15px 25px;
-        border-radius: 4px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        z-index: 10000;
-        animation: slideInRight 0.3s ease;
-      "></div>
-    `).text(message); // .text() để tên người dùng không bị hiểu là HTML
-
-    $("body").append(toast);
-
-    setTimeout(() => {
-      toast.fadeOut(300, function () {
-        $(this).remove();
-      });
-    }, 3000);
-  }
-
-  function escapeHtml(text) {
-    const map = {
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#039;",
-    };
-    return text.replace(/[&<>"']/g, (m) => map[m]);
-  }
-
-  // Add CSS animation
-  const style = document.createElement("style");
-  style.textContent = `
-    @keyframes slideInRight {
-      from {
-        transform: translateX(100%);
-        opacity: 0;
-      }
-      to {
-        transform: translateX(0);
-        opacity: 1;
-      }
-    }
-  `;
-  document.head.appendChild(style);
-
-  //Enable Tooltip Bootstrap
-  const tooltipTriggerList = document.querySelectorAll(
-    '[data-bs-toggle="tooltip"]'
-  );
-  const tooltipList = [...tooltipTriggerList].map(
-    (tooltipTriggerEl) => new bootstrap.Tooltip(tooltipTriggerEl)
-  );
+  // ==================== KHỞI ĐỘNG ====================
+  refresh();
+  Api.live(refresh);
+  // Cập nhật nhãn "Đang quay" khi tới giờ công bố
+  setInterval(() => {
+    if (state && state.winners.some((w) => (w.revealAt || 0) > Date.now() - 2000)) refresh();
+  }, 5000);
 });

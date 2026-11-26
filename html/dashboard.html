@@ -4,135 +4,300 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="./images/favicon.ico" type="image/x-icon">
-    <link href="./libs/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="./dashboard.css">
-    <script src="./libs/jquery-3.6.0.min.js"></script>
+    <meta name="robots" content="noindex">
+    <link rel="icon" href="/images/favicon.ico" type="image/x-icon">
+    <link href="/libs/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/libs/bootstrap-icons.css">
+    <link rel="stylesheet" href="/dashboard.css">
     <title>Dashboard - Vòng Quay May Mắn</title>
 </head>
 
 <body>
-    <div class="container py-5">
-        <div class="row g-4 py-5">
-            <div class="col-lg-6">
+    <!-- Thanh trên cùng -->
+    <nav class="admin-nav">
+        <div class="container d-flex align-items-center gap-2 flex-wrap">
+            <div class="admin-brand me-auto">
+                <i class="bi bi-gear-wide-connected"></i> Quản trị · <span id="nav-event-name"></span>
+            </div>
+            <a href="/" class="btn btn-sm btn-return"><i class="bi bi-bullseye"></i> Mở vòng quay</a>
+            <div class="btn-group btn-group-sm">
+                <a href="/bang-danh-sach/" target="_blank" class="btn btn-light"><i class="bi bi-display"></i> Bảng danh
+                    sách</a>
+                <button type="button" class="btn btn-light" id="copy-board-link" title="Sao chép link bảng danh sách"><i
+                        class="bi bi-link-45deg"></i></button>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-light" id="logout"><i class="bi bi-box-arrow-right"></i>
+                Đăng xuất</button>
+        </div>
+    </nav>
+
+    <div class="container py-4">
+        <div class="alert alert-warning d-flex align-items-center gap-2 d-none" id="pending-banner">
+            <i class="bi bi-hourglass-split fs-5"></i>
+            <div class="me-auto">Có <strong id="pending-count">0</strong> người trúng đang <strong>chờ xác nhận</strong>.
+                <span id="pending-hint"></span></div>
+            <button type="button" class="btn btn-sm btn-success" id="confirm-all"><i class="bi bi-check2-all"></i> Xác
+                nhận tất cả</button>
+        </div>
+
+        <ul class="nav nav-pills admin-tabs mb-3" role="tablist">
+            <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-people"
+                    type="button"><i class="bi bi-people"></i> Người tham dự &amp; trúng thưởng</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-prizes"
+                    type="button"><i class="bi bi-gift"></i> Giải thưởng</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-email"
+                    type="button"><i class="bi bi-envelope"></i> Email &amp; Google Sheet</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-theme"
+                    type="button"><i class="bi bi-palette"></i> Giao diện</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-data"
+                    type="button"><i class="bi bi-database"></i> Dữ liệu</button></li>
+        </ul>
+
+        <div class="tab-content">
+            <!-- ================= NGƯỜI THAM DỰ & TRÚNG THƯỞNG ================= -->
+            <div class="tab-pane fade show active" id="tab-people">
+                <div class="row g-4">
+                    <div class="col-lg-6">
+                        <div class="card shadow-sm">
+                            <div class="card-header text-white">
+                                <h5 class="mb-0">Người tham dự</h5>
+                            </div>
+                            <div class="card-body">
+                                <form id="add-participant-form" class="mb-2">
+                                    <div class="row g-2">
+                                        <div class="col-sm-5"><input type="text" class="form-control"
+                                                id="participant-name" placeholder="Họ tên *" required maxlength="100">
+                                        </div>
+                                        <div class="col-sm-5"><input type="email" class="form-control"
+                                                id="participant-email" placeholder="Email (để gửi thông báo)"
+                                                maxlength="254"></div>
+                                        <div class="col-sm-2 d-grid"><button type="submit"
+                                                class="btn btn-add-participant">Thêm</button></div>
+                                    </div>
+                                </form>
+                                <div class="d-flex align-items-center gap-2 flex-wrap mb-3">
+                                    <input type="file" id="import-file-input"
+                                        accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
+                                        class="d-none">
+                                    <button type="button" class="btn btn-sm btn-outline-dark" id="import-btn"><i
+                                            class="bi bi-file-earmark-arrow-up"></i> Import Excel / CSV</button>
+                                    <span class="small text-muted sample-download">Cột A: Họ tên, cột B: Email. File
+                                        mẫu:
+                                        <a href="/samples/danh-sach-mau.xlsx" download><i
+                                                class="bi bi-file-earmark-excel"></i> Excel</a> ·
+                                        <a href="/samples/danh-sach-mau.csv" download><i
+                                                class="bi bi-filetype-csv"></i> CSV</a></span>
+                                </div>
+
+                                <div class="d-flex justify-content-between align-items-center mb-2 gap-2">
+                                    <p class="mb-0 fw-bold text-nowrap">Đang tham dự (<span
+                                            id="participant-count">0</span>)</p>
+                                    <input type="search" class="form-control form-control-sm" id="participant-search"
+                                        placeholder="Tìm..." style="max-width:180px">
+                                    <button type="button" class="btn btn-sm btn-outline-dark text-nowrap"
+                                        id="clear-participants">Xóa tất cả</button>
+                                </div>
+                                <div class="participants-wrapper pe-1">
+                                    <table class="table table-hover table-sm align-middle mb-0">
+                                        <tbody id="participants-list"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-6">
+                        <div class="card shadow-sm">
+                            <div class="card-header bg-warning text-dark d-flex align-items-center">
+                                <h5 class="mb-0 me-auto">Người trúng thưởng (<span id="winner-count">0</span>)</h5>
+                                <button type="button" class="btn btn-sm btn-dark" id="export-winners"
+                                    title="Tải danh sách trúng thưởng (.csv)"><i class="bi bi-download"></i></button>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center mb-2 gap-2">
+                                    <select class="form-select form-select-sm" id="winner-filter" style="max-width:220px">
+                                        <option value="">Tất cả</option>
+                                        <option value="pending">Chờ xác nhận</option>
+                                        <option value="confirmed">Đã xác nhận</option>
+                                        <option value="cancelled">Đã huỷ</option>
+                                    </select>
+                                    <button type="button" class="btn btn-sm btn-outline-dark" id="clear-winners">Xóa
+                                        tất cả</button>
+                                </div>
+                                <div id="winners-list"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= GIẢI THƯỞNG ================= -->
+            <div class="tab-pane fade" id="tab-prizes">
+                <div class="card shadow-sm">
+                    <div class="card-header text-white d-flex align-items-center">
+                        <h5 class="mb-0 me-auto">Giải thưởng</h5>
+                        <button type="button" class="btn btn-sm btn-warning" id="add-prize"><i class="bi bi-plus-lg"></i>
+                            Thêm giải</button>
+                    </div>
+                    <div class="card-body">
+                        <p class="small text-muted">Chọn <strong>giải đang quay</strong> trước mỗi lượt (ở đây hoặc ngay
+                            trên màn hình vòng quay). Hình và tên giải hiện khi công bố người trúng. Số lượng = 0 là
+                            không giới hạn. Nếu chưa tạo giải nào, vòng quay chỉ công bố tên người trúng.</p>
+                        <div class="row g-3" id="prizes-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= EMAIL & GOOGLE SHEET ================= -->
+            <div class="tab-pane fade" id="tab-email">
+                <div class="row g-4">
+                    <div class="col-lg-6">
+                        <div class="card shadow-sm mb-4">
+                            <div class="card-header text-white">
+                                <h5 class="mb-0">Cài đặt chung</h5>
+                            </div>
+                            <div class="card-body">
+                                <form id="settings-form">
+                                    <div class="mb-3">
+                                        <label class="form-label">Tên sự kiện</label>
+                                        <input type="text" class="form-control" id="set-event-name" maxlength="120">
+                                        <div class="form-text">Hiện trên bảng danh sách và trong email ({su_kien}).</div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Tên người gửi email</label>
+                                        <input type="text" class="form-control" id="set-sender-name" maxlength="80"
+                                            placeholder="Mặc định: tên sự kiện">
+                                    </div>
+                                    <div class="form-check form-switch mb-1">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="set-auto-email">
+                                        <label class="form-check-label fw-semibold" for="set-auto-email">Tự động gửi
+                                            email trúng thưởng khi bấm "Xác nhận"</label>
+                                    </div>
+                                    <div class="form-text mb-3">Người trúng luôn vào hàng <em>chờ xác nhận</em> trước.
+                                        Tắt mục này nếu muốn tự bấm "Gửi email" cho từng người.</div>
+                                    <button type="submit" class="btn btn-return">Lưu cài đặt</button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div class="card shadow-sm">
+                            <div class="card-header text-white d-flex align-items-center">
+                                <h5 class="mb-0 me-auto">Kết nối Google (Apps Script)</h5>
+                                <span class="badge" id="script-status"></span>
+                            </div>
+                            <div class="card-body gsheet-setup">
+                                <p class="small text-muted">Email được gửi từ tài khoản Gmail của bạn qua Google Apps
+                                    Script (Gmail thường: ~100 email/ngày, Google Workspace: ~1.500/ngày). Script cũng
+                                    dùng để đồng bộ danh sách lên Google Sheet.</p>
+
+                                <h6 class="gsheet-step"><span>1</span> Tạo Google Sheet và mở Apps Script</h6>
+                                <ol class="small">
+                                    <li>Tạo Google Sheet mới tại <a href="https://sheets.new" target="_blank"
+                                            rel="noopener">sheets.new</a>.</li>
+                                    <li>Menu <strong>Tiện ích mở rộng → Apps Script</strong>.</li>
+                                </ol>
+                                <h6 class="gsheet-step"><span>2</span> Dán code (đã có sẵn mã bí mật của bạn)</h6>
+                                <div class="gsheet-code-wrapper mb-2">
+                                    <button type="button" class="btn btn-sm btn-light gsheet-copy-btn"
+                                        id="copy-apps-script"><i class="bi bi-clipboard"></i> Sao chép code</button>
+                                    <pre class="gsheet-code mb-0"><code id="apps-script-code">Đang tải…</code></pre>
+                                </div>
+                                <p class="small">Xoá code mặc định trong <code>Code.gs</code>, dán vào, bấm
+                                    <strong>Lưu</strong>.</p>
+                                <h6 class="gsheet-step"><span>3</span> Triển khai thành Ứng dụng web</h6>
+                                <ol class="small">
+                                    <li><strong>Triển khai → Tùy chọn triển khai mới</strong> → bánh răng →
+                                        <strong>Ứng dụng web</strong>.</li>
+                                    <li><em>Thực thi dưới dạng</em>: <strong>Tôi</strong> · <em>Người có quyền truy
+                                            cập</em>: <strong>Bất kỳ ai</strong>.</li>
+                                    <li>Bấm <strong>Triển khai</strong>, cấp quyền (gồm quyền gửi email). Nếu Google cảnh
+                                        báo, chọn <em>Advanced → Go to … (unsafe)</em>.</li>
+                                    <li>Sao chép <strong>URL ứng dụng web</strong> (kết thúc bằng <code>/exec</code>).</li>
+                                </ol>
+                                <h6 class="gsheet-step"><span>4</span> Dán URL vào đây</h6>
+                                <div class="input-group mb-2">
+                                    <input type="text" class="form-control" id="script-url" spellcheck="false"
+                                        placeholder="https://script.google.com/macros/s/XXXXXXXX/exec">
+                                    <button type="button" class="btn btn-return" id="save-script-url">Lưu</button>
+                                    <button type="button" class="btn btn-outline-dark" id="test-script">Kiểm tra</button>
+                                </div>
+                                <div class="input-group input-group-sm mb-3">
+                                    <span class="input-group-text">Gửi email thử tới</span>
+                                    <input type="email" class="form-control" id="test-email-to"
+                                        placeholder="email-cua-ban@gmail.com">
+                                    <button type="button" class="btn btn-outline-dark" id="send-test-email">Gửi
+                                        thử</button>
+                                </div>
+                                <div class="d-flex gap-2 flex-wrap">
+                                    <button type="button" class="btn btn-outline-dark btn-sm" id="sync-sheet"><i
+                                            class="bi bi-cloud-upload"></i> Đồng bộ lên Google Sheet</button>
+                                    <button type="button" class="btn btn-outline-danger btn-sm" id="regen-secret"><i
+                                            class="bi bi-key"></i> Đổi mã bí mật</button>
+                                </div>
+                                <p class="small text-muted mt-3 mb-0"><i class="bi bi-info-circle"></i> Khi sửa code
+                                    Apps Script (hoặc đổi mã bí mật): <em>Triển khai → Quản lý các bản triển khai → ✏️ →
+                                        Phiên bản: Phiên bản mới → Triển khai</em> để giữ nguyên URL.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-6">
+                        <div class="card shadow-sm">
+                            <div class="card-header text-white">
+                                <h5 class="mb-0">Mẫu email</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="small text-muted mb-3">
+                                    Biến có thể dùng: <code>{ten}</code> người trúng · <code>{giai}</code> tên giải ·
+                                    <code>{ma}</code> mã giảm giá · <code>{uu_dai}</code> mức ưu đãi ·
+                                    <code>{mo_ta}</code> mô tả giải · <code>{su_kien}</code> tên sự kiện.
+                                    Dòng chứa biến không có giá trị (vd <code>{ma}</code> với giải hiện vật) sẽ tự bị bỏ.
+                                    Hình giải và mã giảm giá được tự chèn nổi bật trong email trúng thưởng.
+                                </div>
+                                <ul class="nav nav-tabs mb-3" role="tablist">
+                                    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab"
+                                            data-bs-target="#tpl-win" type="button">🎉 Trúng thưởng</button></li>
+                                    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab"
+                                            data-bs-target="#tpl-cancel" type="button">🙏 Huỷ &amp; xin lỗi</button></li>
+                                </ul>
+                                <div class="tab-content">
+                                    <div class="tab-pane fade show active" id="tpl-win">
+                                        <label class="form-label">Tiêu đề</label>
+                                        <input type="text" class="form-control mb-2" id="tpl-win-subject"
+                                            maxlength="200">
+                                        <label class="form-label">Nội dung</label>
+                                        <textarea class="form-control" id="tpl-win-body" rows="10"></textarea>
+                                    </div>
+                                    <div class="tab-pane fade" id="tpl-cancel">
+                                        <label class="form-label">Tiêu đề</label>
+                                        <input type="text" class="form-control mb-2" id="tpl-cancel-subject"
+                                            maxlength="200">
+                                        <label class="form-label">Nội dung</label>
+                                        <textarea class="form-control" id="tpl-cancel-body" rows="10"></textarea>
+                                    </div>
+                                </div>
+                                <div class="d-flex gap-2 mt-3 flex-wrap">
+                                    <button type="button" class="btn btn-return" id="save-templates">Lưu mẫu</button>
+                                    <button type="button" class="btn btn-outline-dark" id="preview-template"><i
+                                            class="bi bi-eye"></i> Xem trước</button>
+                                    <button type="button" class="btn btn-outline-secondary ms-auto"
+                                        id="reset-templates">Khôi phục mẫu mặc định</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= GIAO DIỆN ================= -->
+            <div class="tab-pane fade" id="tab-theme">
                 <div class="card shadow-sm">
                     <div class="card-header text-white">
-                        <h5 class="mb-0">
-                            Thêm người tham dự
-                        </h5>
+                        <h5 class="mb-0">Tuỳ chỉnh giao diện</h5>
                     </div>
                     <div class="card-body">
-                        <form id="add-participant-form" class="mb-3 d-flex flex-column">
-                            <div class="d-flex align-items-stretch">
-                                <div class="input-group w-100 me-3">
-                                    <input type="text" class="form-control " id="participant-name"
-                                        placeholder="Nhập tên người tham dự..." required>
-                                    <button type="submit" class="btn btn-add-participant w-25 fs-5">
-                                        Thêm
-                                    </button>
-
-                                </div>
-                                <!-- CSV Import -->
-                                <div>
-                                    <input type="file" id="csv-file-input"
-                                        accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
-                                        style="display: none;">
-                                    <button type="button" class="btn btn-outline-dark w-100 h-100" id="import-csv-btn"
-                                        data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Import Excel / CSV">
-                                        <i class="bi bi-file-earmark-arrow-down-fill fs-5"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="error-message" id="add-error"></div>
-                            <div class="small text-muted mt-2 sample-download">
-                                <i class="bi bi-info-circle"></i> Import file Excel (.xlsx) hoặc CSV — lấy cột đầu tiên
-                                làm tên. Tải file mẫu:
-                                <a href="./samples/danh-sach-mau.xlsx" download="danh-sach-mau.xlsx">
-                                    <i class="bi bi-file-earmark-excel"></i> Excel</a>
-                                ·
-                                <a href="./samples/danh-sach-mau.csv" download="danh-sach-mau.csv">
-                                    <i class="bi bi-filetype-csv"></i> CSV</a>
-                            </div>
-                        </form>
-
-                        <div class="participants-header d-flex justify-content-between align-items-center mb-3">
-                            <p class="mb-0 fw-bold">Danh sách tham dự (<span id="participant-count">0</span>)
-                            </p>
-                            <button type="button" class="btn btn-sm btn-outline-dark" id="clear-all-participants">
-                                Xóa tất cả
-                            </button>
-                        </div>
-                        <div class="participants-wrapper pe-1">
-                            <table class="table table-hover" id="participants-list">
-                                <tbody>
-                                    <tr>
-                                        <td colspan="3" class="text-center text-muted py-4">
-                                            <p>Chưa có người tham dự</p>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-6">
-                <div class="card shadow-sm h-100">
-                    <div class="card-header bg-warning text-dark">
-                        <h5 class="mb-0">
-                            Danh sách trúng thưởng
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="winners-header d-flex justify-content-between align-items-center mb-3">
-                            <p class="mb-0 fw-bold" style="font-size: 15px;">
-                                Có <span id="winner-count">0</span> người trúng thưởng
-                            </p>
-                            <button type="button" class="btn btn-sm btn-outline-dark" id="clear-all-winners">
-                                Xóa tất cả
-                            </button>
-                        </div>
-
-                        <div id="winners-list" class="list-group pe-1" style="max-height: 450px; overflow-y: auto;">
-                            <div class="text-center text-muted py-4">
-                                <p>Chưa có người trúng thưởng</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="d-flex justify-content-center flex-wrap mt-4 gap-3">
-            <a href="index.html" class="btn btn-return">
-                Đến vòng quay
-            </a>
-            <button type="button" class="btn btn-outline-dark btn-sync" id="sync-data">
-                Đồng bộ Google Sheet
-            </button>
-            <button type="button" class="btn btn-outline-dark" id="open-gsheet-setup">
-                <i class="bi bi-gear"></i> Cài đặt Google Sheet
-            </button>
-            <button type="button" class="btn btn-outline-dark" id="open-theme-settings">
-                <i class="bi bi-palette"></i> Giao diện
-            </button>
-        </div>
-
-        <!-- Theme Settings Modal -->
-        <div class="modal fade" id="themeModal" tabindex="-1" aria-labelledby="themeModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="themeModalLabel"><i class="bi bi-palette"></i> Tuỳ chỉnh giao diện
-                        </h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <p class="small text-muted">
-                            Thay đổi được áp dụng ngay, kể cả trên tab Vòng quay đang mở. Cài đặt được lưu trong trình
-                            duyệt này — hãy chỉnh trên đúng máy sẽ chiếu vòng quay.
-                        </p>
-
+                        <p class="small text-muted">Áp dụng ngay cho vòng quay và bảng danh sách trên mọi máy đang mở.
+                            Ảnh được tự thu nhỏ trước khi tải lên.</p>
                         <h6 class="theme-section-title">Hình ảnh</h6>
                         <div class="row g-3 mb-4" id="theme-images"></div>
 
@@ -154,207 +319,213 @@
                             </div>
                         </div>
                     </div>
-                    <div class="modal-footer justify-content-between">
-                        <button type="button" class="btn btn-outline-danger" id="reset-theme-all">
-                            <i class="bi bi-arrow-counterclockwise"></i> Khôi phục toàn bộ mặc định
-                        </button>
-                        <button type="button" class="btn btn-return" data-bs-dismiss="modal">Xong</button>
-                    </div>
                 </div>
             </div>
-        </div>
-        <p class="text-center small mt-2 mb-0" id="gsheet-status-text"></p>
 
-        <!-- Google Sheet Setup Modal -->
-        <div class="modal fade" id="gsheetSetupModal" tabindex="-1" aria-labelledby="gsheetSetupModalLabel"
-            aria-hidden="true">
-            <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="gsheetSetupModalLabel">
-                            <i class="bi bi-file-earmark-spreadsheet"></i> Cài đặt đồng bộ Google Sheet
-                        </h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body gsheet-setup">
-                        <p class="text-muted small">
-                            Mỗi lần bấm <strong>Đồng bộ Google Sheet</strong>, danh sách hiện tại sẽ được ghi đè vào
-                            2 trang tính <code>Nguoi tham du</code> và <code>Trung thuong</code> (tự tạo nếu chưa có).
-                        </p>
-
-                        <h6 class="gsheet-step"><span>1</span> Tạo Google Sheet và mở Apps Script</h6>
-                        <ol class="small">
-                            <li>Tạo một Google Sheet mới tại
-                                <a href="https://sheets.new" target="_blank" rel="noopener">sheets.new</a>
-                                (hoặc mở Sheet có sẵn).</li>
-                            <li>Trên thanh menu chọn <strong>Tiện ích mở rộng → Apps Script</strong>
-                                (<em>Extensions → Apps Script</em>).</li>
-                        </ol>
-
-                        <h6 class="gsheet-step"><span>2</span> Dán code</h6>
-                        <ol class="small">
-                            <li>Xoá hết code mặc định trong file <code>Code.gs</code>.</li>
-                            <li>Bấm <strong>Sao chép code</strong> bên dưới rồi dán vào, bấm <strong>Lưu</strong>
-                                (biểu tượng đĩa mềm).</li>
-                        </ol>
-                        <div class="gsheet-code-wrapper mb-3">
-                            <button type="button" class="btn btn-sm btn-light gsheet-copy-btn" id="copy-apps-script">
-                                <i class="bi bi-clipboard"></i> Sao chép code
-                            </button>
-                            <pre class="gsheet-code mb-0"><code id="apps-script-code"></code></pre>
+            <!-- ================= DỮ LIỆU ================= -->
+            <div class="tab-pane fade" id="tab-data">
+                <div class="row g-4">
+                    <div class="col-lg-6 d-none" id="legacy-card">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-header text-white">
+                                <h5 class="mb-0">Nhập dữ liệu từ bản cũ</h5>
+                            </div>
+                            <div class="card-body">
+                                <p>Trình duyệt này còn danh sách của phiên bản cũ (<strong id="legacy-count">0</strong>
+                                    người). Bấm để chuyển lên máy chủ.</p>
+                                <button type="button" class="btn btn-return" id="migrate-legacy">Nhập dữ liệu cũ</button>
+                            </div>
                         </div>
-
-                        <h6 class="gsheet-step"><span>3</span> Triển khai thành Ứng dụng web</h6>
-                        <ol class="small">
-                            <li>Bấm <strong>Triển khai → Tùy chọn triển khai mới</strong>
-                                (<em>Deploy → New deployment</em>).</li>
-                            <li>Bấm biểu tượng bánh răng, chọn <strong>Ứng dụng web</strong> (<em>Web app</em>).</li>
-                            <li><em>Thực thi dưới dạng</em>: <strong>Tôi</strong> · <em>Người có quyền truy cập</em>:
-                                <strong>Bất kỳ ai</strong> (<em>Anyone</em>).</li>
-                            <li>Bấm <strong>Triển khai</strong> và cấp quyền cho tài khoản Google. Nếu Google cảnh báo,
-                                chọn <em>Advanced → Go to … (unsafe)</em> — đây là script của chính bạn.</li>
-                            <li>Sao chép <strong>URL ứng dụng web</strong> (kết thúc bằng <code>/exec</code>).</li>
-                        </ol>
-
-                        <h6 class="gsheet-step"><span>4</span> Dán URL vào đây</h6>
-                        <div class="input-group mb-2">
-                            <input type="text" class="form-control" id="gsheet-url-input" spellcheck="false"
-                                placeholder="https://script.google.com/macros/s/XXXXXXXX/exec">
-                            <button type="button" class="btn btn-return" id="save-gsheet-url">Lưu</button>
-                            <button type="button" class="btn btn-outline-dark" id="test-gsheet-url">Kiểm tra</button>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-header text-white">
+                                <h5 class="mb-0">Xoá dữ liệu</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="small">Xoá toàn bộ người tham dự và người trúng thưởng để bắt đầu sự kiện mới.
+                                    Giải thưởng, cài đặt email và giao diện được giữ lại.</p>
+                                <button type="button" class="btn btn-outline-danger" id="reset-all-data"><i
+                                        class="bi bi-trash3"></i> Xoá toàn bộ người tham dự &amp; trúng thưởng</button>
+                            </div>
                         </div>
-                        <div class="small mb-2" id="gsheet-url-message"></div>
-                        <div class="small text-muted">
-                            Đang dùng: <code id="gsheet-current-url">(chưa cấu hình)</code>
-                            <a href="javascript:void(0)" class="ms-2 link-danger d-none" id="clear-gsheet-url">Xoá URL
-                                đã lưu</a>
-                        </div>
-                        <p class="small text-muted mt-2 mb-0">
-                            <i class="bi bi-info-circle"></i> URL được lưu trong trình duyệt này. Dùng máy hoặc trình
-                            duyệt khác thì cần dán lại. Khi sửa code Apps Script, vào
-                            <em>Triển khai → Quản lý các bản triển khai → Chỉnh sửa → Phiên bản mới</em> để URL giữ nguyên.
-                        </p>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-outline-dark" data-bs-dismiss="modal">Đóng</button>
                     </div>
                 </div>
             </div>
-        </div>
-
-        <!-- Delete Winner Modal -->
-        <div class="modal fade" id="deleteWinnerModal" tabindex="-1" aria-labelledby="deleteWinnerModalLabel"
-            aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="deleteWinnerModalLabel">Xóa người trúng thưởng</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <p>Bạn muốn làm gì với <strong id="winner-name-modal"></strong>?</p>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-outline-dark" id="restore-winner-btn">
-                            Chuyển về danh sách tham dự
-                        </button>
-                        <button type="button" class="btn btn-danger" id="delete-winner-btn">
-                            Xóa
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Clear All Winners Modal -->
-        <div class="modal fade" id="clearAllWinnersModal" tabindex="-1" aria-labelledby="clearAllWinnersModalLabel"
-            aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="clearAllWinnersModalLabel">Xóa tất cả người trúng thưởng</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <p>Bạn muốn làm gì với <strong><span id="all-winners-count"></span> người trúng thưởng</strong>?
-                        </p>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-outline-dark" id="restore-all-winners-btn">
-                            Chuyển tất cả về danh sách tham dự
-                        </button>
-                        <button type="button" class="btn btn-danger" id="delete-all-winners-btn">
-                            Xóa tất cả
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Delete Participant Modal -->
-        <div class="modal fade" id="deleteParticipantModal" tabindex="-1" aria-labelledby="deleteParticipantModalLabel"
-            aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="deleteParticipantModalLabel">Xóa người tham dự</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <p>Bạn có chắc muốn xóa <strong id="participant-name-modal"></strong>?</p>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-outline-dark" data-bs-dismiss="modal">
-                            Huỷ
-                        </button>
-                        <button type="button" class="btn btn-danger" id="confirm-delete-participant-btn">
-                            Xoá
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Clear All Participants Modal -->
-        <div class="modal fade" id="clearAllParticipantsModal" tabindex="-1"
-            aria-labelledby="clearAllParticipantsModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="clearAllParticipantsModalLabel">Xóa tất cả người tham dự</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <p>Bạn có chắc muốn xóa <strong>tất cả <span id="all-participants-count"></span> người tham
-                                dự</strong>?</p>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-outline-dark" data-bs-dismiss="modal">
-                            Huỷ
-                        </button>
-                        <button type="button" class="btn btn-danger" id="confirm-clear-all-participants-btn">
-                            Xoá
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div id="loading-overlay" class="loading-overlay d-none">
-            <div class="spinner-border text-light" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-            <p class="text-light mt-2">Đang xử lý...</p>
         </div>
     </div>
-    <link rel="stylesheet" href="./libs/bootstrap-icons.css">
-    <script src="./libs/bootstrap.bundle.min.js"></script>
+
+    <!-- Modal: thêm / sửa giải -->
+    <div class="modal fade" id="prizeModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <form class="modal-content" id="prize-form">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="prize-modal-title">Thêm giải</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="prize-id">
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label">Tên giải *</label>
+                            <input type="text" class="form-control" id="prize-name" required maxlength="100"
+                                placeholder="VD: Giải Nhất - iPhone 16">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Số lượng</label>
+                            <input type="number" class="form-control" id="prize-quantity" min="0" max="10000" value="1">
+                            <div class="form-text">0 = không giới hạn</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Hình giải thưởng</label>
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="theme-image-preview prize-image-preview"><img id="prize-image-preview"
+                                        alt=""><span class="small text-muted" id="prize-no-image">Chưa có hình</span>
+                                </div>
+                                <div class="d-flex flex-column gap-2">
+                                    <input type="file" accept="image/*" id="prize-image-input" class="d-none">
+                                    <button type="button" class="btn btn-sm btn-return" id="prize-image-btn"><i
+                                            class="bi bi-upload"></i> Chọn hình</button>
+                                    <button type="button" class="btn btn-sm btn-outline-dark" id="prize-image-remove">Bỏ
+                                        hình</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Mô tả (không bắt buộc)</label>
+                            <input type="text" class="form-control" id="prize-description" maxlength="300"
+                                placeholder="Dùng trong email qua biến {mo_ta}">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label d-block">Loại giải</label>
+                            <div class="btn-group" role="group">
+                                <input type="radio" class="btn-check" name="prize-type" id="prize-type-gift"
+                                    value="gift" checked>
+                                <label class="btn btn-outline-success" for="prize-type-gift"><i
+                                        class="bi bi-gift"></i> Hiện vật / phần thưởng</label>
+                                <input type="radio" class="btn-check" name="prize-type" id="prize-type-code"
+                                    value="code">
+                                <label class="btn btn-outline-success" for="prize-type-code"><i
+                                        class="bi bi-ticket-perforated"></i> Mã giảm giá</label>
+                            </div>
+                        </div>
+                        <div class="col-12 d-none" id="prize-code-fields">
+                            <div class="border rounded p-3">
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label">Mức ưu đãi</label>
+                                        <input type="text" class="form-control" id="prize-discount" maxlength="60"
+                                            placeholder="VD: 10% hoặc 500.000đ">
+                                    </div>
+                                    <div class="col-md-8">
+                                        <label class="form-label d-block">Cách tạo mã</label>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="code-mode"
+                                                id="code-mode-random" value="random" checked>
+                                            <label class="form-check-label" for="code-mode-random">Tự tạo mã riêng cho
+                                                mỗi người</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="code-mode"
+                                                id="code-mode-fixed" value="fixed">
+                                            <label class="form-check-label" for="code-mode-fixed">Dùng chung 1
+                                                mã</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-5 code-random">
+                                        <label class="form-label">Tiền tố</label>
+                                        <input type="text" class="form-control" id="prize-code-prefix" maxlength="20"
+                                            placeholder="VD: EZVPS10-">
+                                    </div>
+                                    <div class="col-md-3 code-random">
+                                        <label class="form-label">Số ký tự ngẫu nhiên</label>
+                                        <input type="number" class="form-control" id="prize-code-length" min="4"
+                                            max="12" value="6">
+                                    </div>
+                                    <div class="col-md-4 code-random">
+                                        <label class="form-label">Ví dụ</label>
+                                        <div class="form-control bg-light font-monospace" id="prize-code-example"></div>
+                                    </div>
+                                    <div class="col-md-6 code-fixed d-none">
+                                        <label class="form-label">Mã giảm giá</label>
+                                        <input type="text" class="form-control font-monospace" id="prize-code-fixed"
+                                            maxlength="40" placeholder="VD: TET2026">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-dark" data-bs-dismiss="modal">Huỷ</button>
+                    <button type="submit" class="btn btn-return" id="prize-save">Lưu giải</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: sửa người tham dự -->
+    <div class="modal fade" id="editParticipantModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <form class="modal-content" id="edit-participant-form">
+                <div class="modal-header">
+                    <h5 class="modal-title">Sửa thông tin</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="edit-participant-id">
+                    <label class="form-label">Họ tên</label>
+                    <input type="text" class="form-control mb-3" id="edit-participant-name" required maxlength="100">
+                    <label class="form-label">Email</label>
+                    <input type="email" class="form-control" id="edit-participant-email" maxlength="254">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-dark" data-bs-dismiss="modal">Huỷ</button>
+                    <button type="submit" class="btn btn-return">Lưu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: xác nhận chung -->
+    <div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="confirm-title"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="confirm-body"></div>
+                <div class="modal-footer" id="confirm-footer"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: xem trước email -->
+    <div class="modal fade" id="previewModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Xem trước: <span id="preview-subject"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <iframe id="preview-frame" title="Xem trước email" sandbox class="email-preview"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="loading" class="loading-overlay d-none">
+        <div class="spinner-border text-light" role="status"></div>
+    </div>
+
+    <script src="/libs/jquery-3.6.0.min.js"></script>
+    <script src="/libs/bootstrap.bundle.min.js"></script>
     <!-- read-excel-file 9.3.20 (MIT) - đọc file .xlsx khi import -->
-    <script src="./libs/read-excel-file.min.js"></script>
-    <script src="./gsheet-setup.js"></script>
-    <script src="./theme.js"></script>
-    <script src="./theme-settings.js"></script>
-    <script src="./dashboard.js"></script>
+    <script src="/libs/read-excel-file.min.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/dashboard.js"></script>
 </body>
 
 </html>

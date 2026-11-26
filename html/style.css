@@ -585,3 +585,108 @@ h1.main-title {
     text-align: center;
     will-change: font-weight, font-stretch, transform;
 }
+/* ===== Thanh điều khiển trên vòng quay ===== */
+.wheel-topbar {
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    z-index: 1000;
+    pointer-events: none;
+}
+
+.wheel-topbar > * {
+    pointer-events: auto;
+}
+
+.prize-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 12px;
+    padding: 8px 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    max-width: 360px;
+}
+
+.prize-bar img {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    border-radius: 8px;
+}
+
+.prize-bar-label {
+    font-size: 0.75rem;
+    color: #246d4b;
+    font-weight: 600;
+}
+
+.wheel-links {
+    display: flex;
+    gap: 8px;
+    margin-left: auto;
+}
+
+.wheel-links a {
+    background: rgba(255, 255, 255, 0.75);
+    color: #246d4b;
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 20px;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+}
+
+.wheel-links a:hover {
+    opacity: 1;
+}
+
+.wheel-toast {
+    position: fixed;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #c62828;
+    color: #fff;
+    padding: 12px 22px;
+    border-radius: 10px;
+    z-index: 3000;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    font-weight: 600;
+}
+
+/* Giải thưởng hiển thị khi công bố người trúng */
+.prize-award {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.prize-award img {
+    max-height: 180px;
+    max-width: 280px;
+    object-fit: contain;
+}
+
+#prize-award-name {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #246d4b;
+}
+
+/* Tránh nháy ảnh mặc định trước khi nạp ảnh tuỳ chỉnh */
+html:not(.theme-ready) .wheel-image,
+html:not(.theme-ready) .spin-button-image,
+html:not(.theme-ready) .main-title {
+    visibility: hidden;
+}

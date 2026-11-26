@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <link rel="icon" href="/images/favicon.ico" type="image/x-icon">
+    <link href="/libs/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/libs/bootstrap-icons.css">
+    <link rel="stylesheet" href="/dashboard.css">
+    <title>Đăng nhập quản trị - Vòng Quay May Mắn</title>
+</head>
+
+<body class="d-flex align-items-center">
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-md-6 col-lg-5">
+                <div class="card shadow">
+                    <div class="card-header text-white">
+                        <h5 class="mb-0"><i class="bi bi-shield-lock"></i> Đăng nhập quản trị</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="no-password" class="d-none">
+                            <div class="alert alert-warning small mb-3">
+                                <strong>Chưa đặt mật khẩu admin.</strong> Làm một lần như sau:
+                            </div>
+                            <p class="small fw-semibold mb-1">Trên Cloudflare:</p>
+                            <ol class="small">
+                                <li>Vào <em>Workers &amp; Pages</em> → chọn Worker <code>lucky-draw-dashboard</code>.</li>
+                                <li><em>Settings → Variables and Secrets → Add</em>.</li>
+                                <li>Type: <strong>Secret</strong>, Name: <code>ADMIN_PASSWORD</code>, Value: mật khẩu
+                                    bạn muốn → <strong>Deploy</strong>.</li>
+                                <li>Tải lại trang này.</li>
+                            </ol>
+                            <p class="small fw-semibold mb-1">Chạy trên máy (npm start):</p>
+                            <p class="small">Tạo file <code>.dev.vars</code> ở thư mục dự án với nội dung
+                                <code>ADMIN_PASSWORD=mat-khau-cua-ban</code> rồi chạy lại.</p>
+                        </div>
+
+                        <form id="login-form">
+                            <label for="password" class="form-label">Mật khẩu</label>
+                            <div class="input-group mb-3">
+                                <input type="password" class="form-control" id="password" autocomplete="current-password"
+                                    required autofocus>
+                                <button class="btn btn-outline-dark" type="button" id="toggle-password"
+                                    aria-label="Hiện mật khẩu"><i class="bi bi-eye"></i></button>
+                            </div>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="remember">
+                                <label class="form-check-label" for="remember">Ghi nhớ đăng nhập 30 ngày</label>
+                            </div>
+                            <div class="text-danger small mb-2" id="login-error"></div>
+                            <button type="submit" class="btn btn-return w-100" id="login-btn">Đăng nhập</button>
+                        </form>
+                    </div>
+                </div>
+                <p class="text-center mt-3">
+                    <a href="/bang-danh-sach/" class="btn btn-light btn-sm"><i class="bi bi-list-stars"></i> Xem bảng
+                        danh sách công khai</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            const params = new URLSearchParams(location.search);
+            let next = params.get("next") || "/dashboard";
+            if (!/^\/(?!\/)/.test(next)) next = "/dashboard"; // chỉ cho chuyển trong trang
+
+            fetch("/api/session").then((r) => r.json()).then((s) => {
+                if (s.loggedIn) location.replace(next);
+                if (!s.passwordSet) {
+                    document.getElementById("no-password").classList.remove("d-none");
+                    document.getElementById("login-form").classList.add("d-none");
+                }
+            }).catch(() => { });
+
+            document.getElementById("toggle-password").onclick = function () {
+                const input = document.getElementById("password");
+                input.type = input.type === "password" ? "text" : "password";
+                this.innerHTML = input.type === "password" ? '<i class="bi bi-eye"></i>' : '<i class="bi bi-eye-slash"></i>';
+            };
+
+            document.getElementById("login-form").onsubmit = async function (e) {
+                e.preventDefault();
+                const btn = document.getElementById("login-btn");
+                const err = document.getElementById("login-error");
+                btn.disabled = true;
+                err.textContent = "";
+                try {
+                    const res = await fetch("/api/login", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            password: document.getElementById("password").value,
+                            remember: document.getElementById("remember").checked,
+                        }),
+                    });
+                    const data = await res.json();
+                    if (data.ok) location.replace(next);
+                    else err.textContent = data.error || "Đăng nhập thất bại";
+                } catch (error) {
+                    err.textContent = "Không kết nối được máy chủ";
+                } finally {
+                    btn.disabled = false;
+                }
+            };
+        })();
+    </script>
+</body>
+
+</html>

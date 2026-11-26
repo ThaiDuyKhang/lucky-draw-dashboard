@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="/images/favicon.ico" type="image/x-icon">
+    <link href="/libs/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/libs/bootstrap-icons.css">
+    <link rel="stylesheet" href="/bang-danh-sach/board.css">
+    <title>Bảng danh sách - Vòng Quay May Mắn</title>
+</head>
+
+<body>
+    <header class="board-header">
+        <h1 class="main-title" id="board-title">Vòng quay may mắn</h1>
+        <div class="board-event" id="event-name"></div>
+    </header>
+
+    <main class="board-main">
+        <section class="board-panel">
+            <div class="board-panel-header">
+                <h2><i class="bi bi-trophy-fill"></i> Người trúng thưởng <span class="count" id="winner-count">0</span>
+                </h2>
+            </div>
+            <div class="board-panel-body auto-scroll" id="winners"></div>
+        </section>
+
+        <section class="board-panel">
+            <div class="board-panel-header">
+                <h2><i class="bi bi-people-fill"></i> Người tham dự <span class="count" id="participant-count">0</span>
+                </h2>
+                <input type="search" class="form-control form-control-sm board-search" id="search"
+                    placeholder="Tìm tên..." aria-label="Tìm tên người tham dự">
+            </div>
+            <div class="board-panel-body auto-scroll" id="participants"></div>
+        </section>
+    </main>
+
+    <div class="board-status" id="status"></div>
+
+    <script src="/js/api.js"></script>
+    <script src="/bang-danh-sach/board.js"></script>
+</body>
+
+</html>
