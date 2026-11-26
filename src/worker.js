@@ -2,7 +2,8 @@
 //
 // Trang công khai : /bang-danh-sach/  (chỉ xem), /login
 // Trang admin     : / (vòng quay), /dashboard  -> cần đăng nhập
-// Mật khẩu admin  : biến bí mật ADMIN_PASSWORD (Cloudflare Secret hoặc file .dev.vars)
+// Mật khẩu admin  : biến bí mật ADMIN_PASSWORD (Cloudflare Secret hoặc file .dev.vars).
+//                   Chưa đặt thì dùng mật khẩu mặc định 12345678 — nên đổi ngay sau khi deploy.
 import { LuckyDrawStore } from "./store.js";
 
 export { LuckyDrawStore };
@@ -10,6 +11,11 @@ export { LuckyDrawStore };
 const SESSION_COOKIE = "ld_session";
 const ADMIN_PAGES = new Set(["/", "/index.html", "/dashboard", "/dashboard.html"]);
 const encoder = new TextEncoder();
+const DEFAULT_PASSWORD = "12345678";
+
+function adminPassword(env) {
+  return env.ADMIN_PASSWORD || DEFAULT_PASSWORD;
+}
 
 function store(env) {
   return env.STORE.get(env.STORE.idFromName("main"));
@@ -24,7 +30,7 @@ function json(data, status = 200, headers = {}) {
 
 // ---------- Phiên đăng nhập (cookie ký HMAC, đổi mật khẩu là mọi phiên hết hạn) ----------
 async function sessionKey(env) {
-  const raw = await crypto.subtle.digest("SHA-256", encoder.encode("lucky-draw:" + env.ADMIN_PASSWORD));
+  const raw = await crypto.subtle.digest("SHA-256", encoder.encode("lucky-draw:" + adminPassword(env)));
   return crypto.subtle.importKey("raw", raw, { name: "HMAC", hash: "SHA-256" }, false, ["sign", "verify"]);
 }
 
@@ -53,7 +59,6 @@ function getCookie(request, name) {
 }
 
 async function isLoggedIn(request, env) {
-  if (!env.ADMIN_PASSWORD) return false;
   const token = getCookie(request, SESSION_COOKIE);
   const [exp, sig] = token.split(".");
   if (!exp || !sig || !(Number(exp) > Date.now())) return false;
@@ -66,7 +71,7 @@ async function isLoggedIn(request, env) {
 
 async function passwordMatches(input, env) {
   const a = await crypto.subtle.digest("SHA-256", encoder.encode(String(input || "")));
-  const b = await crypto.subtle.digest("SHA-256", encoder.encode(env.ADMIN_PASSWORD));
+  const b = await crypto.subtle.digest("SHA-256", encoder.encode(adminPassword(env)));
   return crypto.subtle.timingSafeEqual(a, b);
 }
 
@@ -104,13 +109,10 @@ async function handleApi(request, env, url) {
   }
 
   if (path === "/api/session" && method === "GET") {
-    return json({ loggedIn: await isLoggedIn(request, env), passwordSet: !!env.ADMIN_PASSWORD });
+    return json({ loggedIn: await isLoggedIn(request, env), defaultPassword: !env.ADMIN_PASSWORD });
   }
 
   if (path === "/api/login" && method === "POST") {
-    if (!env.ADMIN_PASSWORD) {
-      return json({ ok: false, error: "Chưa đặt mật khẩu admin (ADMIN_PASSWORD)" }, 503);
-    }
     const ip = request.headers.get("CF-Connecting-IP") || "local";
     if (!(await stub.loginAllowed(ip))) {
       return json({ ok: false, error: "Sai mật khẩu quá nhiều lần. Thử lại sau 10 phút." }, 429);
