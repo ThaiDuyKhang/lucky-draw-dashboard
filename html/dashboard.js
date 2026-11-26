@@ -1,8 +1,23 @@
 $(document).ready(function () {
-  // URL Web App của Google Apps Script (xem README > Đồng bộ Google Sheets).
-  // Để trống "" nếu không dùng tính năng đồng bộ.
-  const SCRIPT_URL =
+  // URL Web App mặc định của Google Apps Script. Có thể để trống "".
+  // URL dán trong hộp thoại "Cài đặt Google Sheet" (lưu ở trình duyệt) được ưu tiên hơn.
+  const DEFAULT_SCRIPT_URL =
     "https://script.google.com/macros/s/AKfycbxHlSw5shW4jgx6mg-cFBBQHSHsOlChY6CBC5fIgBqko097XNjlo7D86l5qjNtgQZMP/exec";
+  const SCRIPT_URL_KEY = "luckydraw_script_url";
+  const SCRIPT_URL_PATTERN =
+    /https:\/\/script\.google\.com\/(?:a\/macros\/[^/\s]+|macros)\/s\/[\w-]+\/exec/;
+
+  function getSavedScriptUrl() {
+    try {
+      return localStorage.getItem(SCRIPT_URL_KEY) || "";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  function getScriptUrl() {
+    return getSavedScriptUrl() || DEFAULT_SCRIPT_URL;
+  }
 
   let participants = [];
   let winners = [];
@@ -514,8 +529,10 @@ $(document).ready(function () {
   }
 
   function syncDataToServer() {
+    const SCRIPT_URL = getScriptUrl();
     if (!SCRIPT_URL) {
-      showToast("Chưa cấu hình SCRIPT_URL trong dashboard.js", "warning");
+      showToast("Chưa cấu hình Google Sheet. Làm theo hướng dẫn để kết nối.", "warning");
+      openGsheetSetup();
       return;
     }
 
@@ -547,7 +564,7 @@ $(document).ready(function () {
           );
         } else {
           const reason = (result && result.error) || "Apps Script chưa hỗ trợ action sync";
-          showToast("Đồng bộ thất bại: " + reason, "danger");
+          showToast("Đồng bộ thất bại: " + reason + ". Xem lại mục Cài đặt Google Sheet.", "danger");
         }
       })
       .catch((error) => {
@@ -556,6 +573,122 @@ $(document).ready(function () {
         showToast("Không thể đồng bộ. Dữ liệu vẫn được lưu cục bộ.", "warning");
       });
   }
+
+  // ==================== GOOGLE SHEET SETUP ====================
+
+  $("#apps-script-code").text(window.APPS_SCRIPT_CODE || "// Không tải được gsheet-setup.js");
+  renderGsheetStatus();
+
+  $("#open-gsheet-setup").click(openGsheetSetup);
+
+  function openGsheetSetup() {
+    $("#gsheet-url-input").val(getSavedScriptUrl());
+    setGsheetMessage("");
+    renderGsheetStatus();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById("gsheetSetupModal")).show();
+  }
+
+  function renderGsheetStatus() {
+    const saved = getSavedScriptUrl();
+    const url = getScriptUrl();
+    $("#gsheet-current-url").text(
+      url ? url + (saved ? "" : " (mặc định trong code)") : "(chưa cấu hình)"
+    );
+    $("#clear-gsheet-url").toggleClass("d-none", !saved);
+  }
+
+  function setGsheetMessage(text, type) {
+    const cls = type === "success" ? "text-success" : type === "danger" ? "text-danger" : "text-muted";
+    $("#gsheet-url-message").attr("class", "small mb-2 " + cls).text(text);
+  }
+
+  // Chấp nhận dán cả dòng: const SCRIPT_URL = "https://.../exec";
+  function readUrlInput() {
+    const raw = $("#gsheet-url-input").val().trim();
+    const match = raw.match(SCRIPT_URL_PATTERN);
+    return match ? match[0] : null;
+  }
+
+  $("#save-gsheet-url").click(function () {
+    const url = readUrlInput();
+    if (!url) {
+      setGsheetMessage(
+        "URL không hợp lệ. URL đúng có dạng https://script.google.com/macros/s/.../exec",
+        "danger"
+      );
+      return;
+    }
+    try {
+      localStorage.setItem(SCRIPT_URL_KEY, url);
+    } catch (e) {
+      setGsheetMessage("Trình duyệt không cho lưu dữ liệu (đang ở chế độ ẩn danh?)", "danger");
+      return;
+    }
+    $("#gsheet-url-input").val(url);
+    renderGsheetStatus();
+    setGsheetMessage("Đã lưu. Bấm Kiểm tra để thử kết nối.", "success");
+    showToast("Đã lưu URL Google Sheet", "success");
+  });
+
+  $("#test-gsheet-url").click(function () {
+    const url = readUrlInput() || getScriptUrl();
+    if (!url) {
+      setGsheetMessage("Chưa có URL để kiểm tra", "danger");
+      return;
+    }
+    const btn = $(this).prop("disabled", true);
+    setGsheetMessage("Đang kiểm tra...");
+    fetch(url)
+      .then((res) => res.json())
+      .then((result) => {
+        if (result && result.success && result.message === "Lucky Draw API is running") {
+          setGsheetMessage("✔ Kết nối thành công. Có thể bấm Đồng bộ Google Sheet.", "success");
+        } else {
+          throw new Error("unexpected");
+        }
+      })
+      .catch(() => {
+        setGsheetMessage(
+          "✘ Không kết nối được. Kiểm tra: đã dán đúng code mới, triển khai dạng Ứng dụng web, quyền truy cập 'Bất kỳ ai'.",
+          "danger"
+        );
+      })
+      .finally(() => btn.prop("disabled", false));
+  });
+
+  $("#clear-gsheet-url").click(function () {
+    try {
+      localStorage.removeItem(SCRIPT_URL_KEY);
+    } catch (e) {}
+    $("#gsheet-url-input").val("");
+    renderGsheetStatus();
+    setGsheetMessage("Đã xoá URL đã lưu.");
+  });
+
+  $("#copy-apps-script").click(function () {
+    const code = window.APPS_SCRIPT_CODE || "";
+    const btn = $(this);
+    const done = () => {
+      btn.html('<i class="bi bi-check2"></i> Đã sao chép');
+      setTimeout(() => btn.html('<i class="bi bi-clipboard"></i> Sao chép code'), 2000);
+    };
+    const fallback = () => {
+      const ta = $("<textarea>").val(code).css({ position: "fixed", opacity: 0 }).appendTo("body");
+      ta[0].select();
+      try {
+        document.execCommand("copy");
+        done();
+      } catch (e) {
+        showToast("Không sao chép được, hãy bôi đen code và nhấn Ctrl+C", "warning");
+      }
+      ta.remove();
+    };
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(code).then(done, fallback);
+    } else {
+      fallback();
+    }
+  });
 
   // ==================== UTILITY FUNCTIONS ====================
 
