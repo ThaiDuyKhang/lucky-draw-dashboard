@@ -4,21 +4,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="./images/favicon.ico" type="image/x-icon">
-    <link href="./libs/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="./style.css">
-    <script src="./libs/jquery-3.6.0.min.js"></script>
-    <script src="./libs/lottie.min.js"></script>
+    <link rel="icon" href="/images/favicon.ico" type="image/x-icon">
+    <link href="/libs/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css">
+    <script src="/libs/jquery-3.6.0.min.js"></script>
+    <script src="/libs/lottie.min.js"></script>
     <!-- GSAP 3.14.1 được tải sẵn về libs/ để chạy được cả khi không có Internet -->
-    <script src="./libs/gsap.min.js"></script>
-    <script src="./libs/SplitText.min.js"></script>
+    <script src="/libs/gsap.min.js"></script>
+    <script src="/libs/SplitText.min.js"></script>
     <!-- Hiệu ứng sao & pháo giấy (Lottie) -->
-    <script src="./images/stars.js"></script>
-    <script src="./images/confetti.js"></script>
+    <script src="/images/stars.js"></script>
+    <script src="/images/confetti.js"></script>
     <title>Vòng Quay May Mắn - EZtech</title>
 </head>
 
 <body>
+    <!-- Thanh điều khiển (admin) -->
+    <div class="wheel-topbar">
+        <div id="prize-bar" class="prize-bar d-none">
+            <img id="prize-bar-image" class="d-none" alt="">
+            <div>
+                <div class="prize-bar-label">Đang quay giải</div>
+                <select id="prize-select" class="form-select form-select-sm" aria-label="Chọn giải đang quay"></select>
+            </div>
+        </div>
+        <div class="wheel-links">
+            <a href="/bang-danh-sach/" target="_blank" title="Bảng danh sách công khai">Bảng danh sách</a>
+            <a href="/dashboard" title="Quản trị">Dashboard</a>
+        </div>
+    </div>
+
     <div class="container mt-5 pt-4">
         <h1 class="main-title text-center mb-4">VÒNG QUAY MAY MẮN</h1>
 
@@ -27,13 +42,13 @@
                 <div class="wheel-container">
                     <div class="ez-wheel-wrapper">
                         <div class="custom-wheel position-relative">
-                            <img src="./images/wheel.png" alt="Vòng quay EZ TECH"
+                            <img src="/images/wheel.png" alt="Vòng quay EZ TECH"
                                 class="wheel-image position-absolute" />
                             <svg class="wheel" viewBox="0 0 500 500" width="700" height="700"></svg>
                         </div>
 
                         <div class="spin-button-wrapper">
-                            <img src="./images/button-wheel.png" alt="Nút quay EZ" class="spin-button-image"
+                            <img src="/images/button-wheel.png" alt="Nút quay EZ" class="spin-button-image"
                                 id="ez-spin-btn" />
                         </div>
                     </div>
@@ -56,22 +71,26 @@
                 <div class="modal-body bg-white text-center rounded-0 py-3 mb-5 px-5 mx-auto flex-grow-0"
                     id="prize-container" style="opacity: 0; visibility: hidden;">
                     <h2 id="prize-text" class="display-2 fw-bold"></h2>
+                    <div id="prize-award" class="prize-award d-none">
+                        <img id="prize-award-image" class="d-none" alt="">
+                        <div id="prize-award-name"></div>
+                    </div>
                 </div>
                 <div class="modal-footer bg-transparent d-flex flex-column justify-content-center gap-3 align-items-center mt-5 border-0"
                     id="modal-buttons" style="opacity: 0; visibility: hidden;">
                     <a href="javascript:void(0)" class="btn btn-lg btn-warning" data-bs-dismiss="modal">Quay tiếp</a>
-                    <a href="dashboard.html" class="btn btn-lg btn-outline-light">Xem danh sách trúng thưởng</a>
+                    <a href="/bang-danh-sach/" target="_blank" class="btn btn-lg btn-outline-light">Xem danh sách trúng thưởng</a>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Bootstrap Icons -->
-    <link rel="stylesheet" href="./libs/bootstrap-icons.css">
+    <link rel="stylesheet" href="/libs/bootstrap-icons.css">
 
-    <script src="./libs/bootstrap.bundle.min.js"></script>
-    <script src="./theme.js"></script>
-    <script src="./script.js"></script>
+    <script src="/libs/bootstrap.bundle.min.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/script.js"></script>
 </body>
 
 </html>

@@ -1,30 +1,27 @@
 #!/usr/bin/env bash
-# Chạy vòng quay trên macOS / Linux: ./start.sh   (đổi cổng: PORT=8081 ./start.sh)
-# Tự dùng Node.js nếu có, không thì dùng Python 3.
-
+# Chạy vòng quay trên máy (macOS / Linux): ./start.sh
+# Cần Node.js >= 20 (https://nodejs.org). Dữ liệu lưu trong thư mục .wrangler/
 cd "$(dirname "$0")" || exit 1
-PORT="${PORT:-8080}"
-URL="http://localhost:$PORT/"
 
-open_browser() {
-  sleep 1
-  if command -v open >/dev/null 2>&1; then open "$URL"        # macOS
-  elif command -v xdg-open >/dev/null 2>&1; then xdg-open "$URL" >/dev/null 2>&1  # Linux
-  fi
-}
-
-if command -v node >/dev/null 2>&1; then
-  open_browser &
-  PORT="$PORT" exec node server.js
-elif command -v python3 >/dev/null 2>&1; then
-  echo "Vòng quay may mắn đang chạy:"
-  echo "  Vòng quay : $URL"
-  echo "  Dashboard : ${URL}dashboard.html"
-  echo "Nhấn Ctrl + C để tắt."
-  open_browser &
-  exec python3 -m http.server "$PORT" --bind 127.0.0.1 --directory html
-else
-  echo "Không tìm thấy Node.js hoặc Python 3."
-  echo "Cài một trong hai (https://nodejs.org hoặc https://python.org), hoặc mở thẳng file html/index.html bằng Chrome/Edge."
+if ! command -v node >/dev/null 2>&1; then
+  echo "Chưa cài Node.js. Tải tại https://nodejs.org (bản LTS) rồi chạy lại."
   exit 1
 fi
+
+if [ ! -d node_modules ]; then
+  echo "Cài đặt lần đầu (cần Internet)..."
+  npm install || exit 1
+fi
+
+if [ ! -f .dev.vars ]; then
+  read -r -s -p "Đặt mật khẩu admin: " PASS; echo
+  printf 'ADMIN_PASSWORD=%s\n' "$PASS" > .dev.vars
+  echo "Đã lưu mật khẩu vào file .dev.vars (sửa file này để đổi mật khẩu)."
+fi
+
+( sleep 4; URL="http://localhost:8080/dashboard"
+  if command -v open >/dev/null 2>&1; then open "$URL"; elif command -v xdg-open >/dev/null 2>&1; then xdg-open "$URL" >/dev/null 2>&1; fi ) &
+
+echo "Dashboard : http://localhost:8080/dashboard"
+echo "Bảng danh sách (máy khác trong mạng LAN dùng IP của máy này): http://localhost:8080/bang-danh-sach/"
+npm start

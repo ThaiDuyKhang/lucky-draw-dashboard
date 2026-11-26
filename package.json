@@ -1,12 +1,16 @@
 {
   "name": "lucky-draw-dashboard",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
-  "description": "Vòng quay may mắn + Dashboard quản lý người tham dự",
+  "description": "Vòng quay may mắn: Dashboard admin, bảng danh sách công khai, gửi email người trúng (Cloudflare Workers)",
   "scripts": {
-    "start": "node server.js"
+    "start": "wrangler dev --ip 0.0.0.0 --port 8080",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.50.0"
   },
   "engines": {
-    "node": ">=14"
+    "node": ">=20"
   }
 }

@@ -52,55 +52,123 @@ $(document).ready(function () {
 
   // State
 
-  let participants = [];
-  let winners = [];
+  const Api = window.LuckyApi;
+  let state = null; // dữ liệu admin từ máy chủ
   let segments = [];
   let totalSegments = 0;
-  let selectedWinner = null;
+  let selectedWinner = null; // { name, prize, ... } của lượt quay hiện tại
   let isSpinning = false;
+  let pendingRefresh = false;
   let starsAnimation = null;
   let currentSplitText = null;
 
   // Initialization
 
-  loadParticipantsFromLocalStorage();
-  initializeWheel(); // Shuffle và vẽ vòng quay ngay từ lần đầu mở trang
+  refreshState(true);
+  Api.live(() => refreshState(false));
 
-  // Khi Dashboard (tab khác) thay đổi danh sách -> cập nhật lại vòng quay
-  window.addEventListener("storage", function (e) {
-    if (e.key !== "luckydraw_participants" && e.key !== "luckydraw_winners") {
+  async function refreshState(first) {
+    if (isSpinning) {
+      pendingRefresh = true; // đang quay: cập nhật sau khi quay xong
       return;
     }
-    loadParticipantsFromLocalStorage();
-    if (!isSpinning) initializeWheel();
+    try {
+      const next = await Api.adminState();
+      const prevKey = state ? activeKey(state) : "";
+      const prevColors = state ? JSON.stringify(state.theme.colors) : "";
+      state = next;
+      Api.applyTheme(state.theme);
+      renderPrizeBar();
+      if (first || activeKey(state) !== prevKey) initializeWheel();
+      else if (JSON.stringify(state.theme.colors) !== prevColors) drawWheel(segments);
+    } catch (e) {
+      document.documentElement.classList.add("theme-ready");
+      if (first) showWheelMessage(e.message);
+      else console.warn(e);
+    }
+  }
+
+  // "Chữ ký" danh sách đang quay: chỉ vẽ lại vòng quay khi danh sách thay đổi
+  function activeKey(s) {
+    return s.participants
+      .filter((p) => p.status === "active")
+      .map((p) => p.id + ":" + p.name)
+      .sort()
+      .join("|");
+  }
+
+  function currentPrize() {
+    return state && state.prizes.find((p) => p.id === state.currentPrizeId);
+  }
+
+  // Thanh giải thưởng đang quay (chọn giải ngay trên màn hình quay)
+  function renderPrizeBar() {
+    const bar = $("#prize-bar");
+    if (!state || state.prizes.length === 0) {
+      bar.addClass("d-none");
+      return;
+    }
+    bar.removeClass("d-none");
+    const select = $("#prize-select").empty();
+    state.prizes.forEach((p) => {
+      const left = p.remaining === null ? "" : ` (còn ${p.remaining}/${p.quantity})`;
+      select.append($("<option>").val(p.id).text(p.name + left));
+    });
+    select.val(state.currentPrizeId || "");
+    const prize = currentPrize();
+    const img = $("#prize-bar-image");
+    if (prize && prize.imageId) img.attr("src", Api.imageUrl(prize.imageId)).removeClass("d-none");
+    else img.addClass("d-none");
+  }
+
+  $("#prize-select").on("change", async function () {
+    try {
+      const res = await Api.action("setCurrentPrize", { id: $(this).val() });
+      state = res.state;
+      renderPrizeBar();
+    } catch (e) {
+      showToast(e.message);
+    }
   });
 
-  // Áp dụng ảnh tuỳ chỉnh; khi Dashboard đổi giao diện -> cập nhật ngay
-  if (window.LuckyTheme) {
-    window.LuckyTheme.applyImages();
-    window.LuckyTheme.onChange(function () {
-      window.LuckyTheme.applyImages();
-      if (segments.length > 0) drawWheel(segments); // giữ nguyên vị trí các ô
-      else initializeWheel();
-    });
+  function showToast(message) {
+    const t = $('<div class="wheel-toast"></div>').text(message).appendTo("body");
+    setTimeout(() => t.fadeOut(400, () => t.remove()), 4000);
+  }
+
+  function showWheelMessage(message) {
+    $(".wheel").html(
+      `<text x="250" y="250" fill="#c62828" font-size="16" text-anchor="middle" dominant-baseline="middle">${escapeHtml(message)}</text>`
+    );
   }
 
   // Event handlers
 
-  $("#ez-spin-btn").click(function () {
-    if (isSpinning) return;
+  $("#ez-spin-btn").click(async function () {
+    if (isSpinning || !state) return;
 
-    const activeParticipants = participants.filter(
-      (p) => p.status === "active"
-    );
-    if (activeParticipants.length === 0) {
-      alert(
-        "Không có người tham dự nào! Vui lòng thêm người tham dự trong Dashboard."
-      );
+    if (!state.participants.some((p) => p.status === "active")) {
+      showToast("Chưa có người tham dự! Vui lòng thêm người tham dự trong Dashboard.");
+      return;
+    }
+    const prize = currentPrize();
+    if (prize && prize.remaining === 0) {
+      showToast(`Giải "${prize.name}" đã hết. Hãy chọn giải khác.`);
       return;
     }
 
-    performSpin();
+    isSpinning = true; // khoá nút ngay để tránh bấm 2 lần
+    try {
+      const res = await Api.action("spin", {
+        prizeId: state.currentPrizeId,
+        revealDelayMs: CONFIG.TIMING.SPIN_DURATION + CONFIG.TIMING.MODAL_DELAY,
+      });
+      performSpin(res.winner);
+      state = res.state; // vòng quay giữ nguyên các ô cho tới khi quay xong
+    } catch (e) {
+      isSpinning = false;
+      showToast(e.message);
+    }
   });
 
   // Audio
@@ -166,7 +234,7 @@ $(document).ready(function () {
   // Vòng quay
 
   function initializeWheel() {
-    const activeParticipants = participants.filter(
+    const activeParticipants = state.participants.filter(
       (p) => p.status === "active"
     );
 
@@ -195,15 +263,7 @@ $(document).ready(function () {
   }
 
   function getWheelColors() {
-    if (window.LuckyTheme) return window.LuckyTheme.getColors();
-    return {
-      segment1: CONFIG.WHEEL.COLORS.LIGHT,
-      text1: CONFIG.WHEEL.COLORS.DARK,
-      segment2: CONFIG.WHEEL.COLORS.DARK,
-      text2: "#ffffff",
-      center: CONFIG.WHEEL.COLORS.DARK,
-      centerText: CONFIG.WHEEL.COLORS.LIGHT,
-    };
+    return Api.colors(state && state.theme);
   }
 
   function drawWheel(segments) {
@@ -293,7 +353,8 @@ $(document).ready(function () {
     svg.html(svgContent);
   }
 
-  function performSpin() {
+  // Người trúng do máy chủ chọn ngẫu nhiên; ở đây chỉ quay tới đúng ô của người đó
+  function performSpin(winner) {
     isSpinning = true;
     $("#ez-spin-btn").css("pointer-events", "none");
     $(".spin-button-wrapper").addClass("spinning");
@@ -301,10 +362,17 @@ $(document).ready(function () {
     playSpinSound();
     startStarsAnimation();
 
-    // Mọi ô trên vòng quay có xác suất trúng như nhau
-    const randomIndex = randomInt(segments.length);
+    let randomIndex = segments.findIndex((seg) => seg.id === winner.participantId);
+    if (randomIndex === -1) {
+      // Danh sách vừa đổi ở máy khác: thêm người trúng vào vòng quay rồi quay tới
+      segments.splice(randomInt(segments.length + 1), 0, { id: winner.participantId, name: winner.name });
+      segments.forEach((seg, i) => (seg.type = i % 2 === 0 ? 1 : 2));
+      totalSegments = segments.length;
+      drawWheel(segments);
+      randomIndex = segments.findIndex((seg) => seg.id === winner.participantId);
+    }
 
-    selectedWinner = segments[randomIndex];
+    selectedWinner = winner;
 
     const segmentAngle = 360 / segments.length;
     const segmentMiddle = randomIndex * segmentAngle + segmentAngle / 2;
@@ -341,27 +409,15 @@ $(document).ready(function () {
   function showSpinResult() {
     $("#prize-text").text(selectedWinner.name);
 
-    const winner = {
-      id: selectedWinner.id,
-      name: selectedWinner.name,
-      winTime: new Date().toISOString(),
-    };
-
-    winners.push(winner);
-
-    const participantIndex = participants.findIndex(
-      (p) => p.id === selectedWinner.id
-    );
-    if (participantIndex !== -1) {
-      participants[participantIndex].status = "inactive";
+    // Giải thưởng: hình + tên (hiện cùng tên người trúng)
+    const prize = selectedWinner.prize;
+    $("#prize-award-name").text(prize ? prize.name : "");
+    if (prize && prize.imageId) {
+      $("#prize-award-image").attr("src", Api.imageUrl(prize.imageId)).removeClass("d-none");
+    } else {
+      $("#prize-award-image").addClass("d-none").attr("src", "");
     }
-
-    // Save to localStorage
-    localStorage.setItem(
-      "luckydraw_participants",
-      JSON.stringify(participants)
-    );
-    localStorage.setItem("luckydraw_winners", JSON.stringify(winners));
+    $("#prize-award").toggleClass("d-none", !prize);
 
     playVictorySound();
 
@@ -374,7 +430,13 @@ $(document).ready(function () {
       $("#congratsModal").removeClass("modal-zoom-in");
     }, 600);
 
+    // Vẽ lại vòng quay không còn người vừa trúng
     initializeWheel();
+    renderPrizeBar();
+    if (pendingRefresh) {
+      pendingRefresh = false;
+      refreshState(false);
+    }
   }
 
   // Animation
@@ -544,31 +606,6 @@ $(document).ready(function () {
       $("body").append(confetti);
 
       setTimeout(() => confetti.remove(), 6000);
-    }
-  }
-
-  // Data management
-
-  function loadParticipantsFromLocalStorage() {
-    const savedParticipants = localStorage.getItem("luckydraw_participants");
-    const savedWinners = localStorage.getItem("luckydraw_winners");
-
-    if (savedParticipants) {
-      try {
-        participants = JSON.parse(savedParticipants);
-      } catch (e) {
-        console.error("Error loading participants:", e);
-        participants = [];
-      }
-    }
-
-    if (savedWinners) {
-      try {
-        winners = JSON.parse(savedWinners);
-      } catch (e) {
-        console.error("Error loading winners:", e);
-        winners = [];
-      }
     }
   }
 
