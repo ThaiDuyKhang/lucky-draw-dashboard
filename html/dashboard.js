@@ -1,5 +1,6 @@
 $(document).ready(function () {
-  // URL của Google Apps Script
+  // URL Web App của Google Apps Script (xem README > Đồng bộ Google Sheets).
+  // Để trống "" nếu không dùng tính năng đồng bộ.
   const SCRIPT_URL =
     "https://script.google.com/macros/s/AKfycbxHlSw5shW4jgx6mg-cFBBQHSHsOlChY6CBC5fIgBqko097XNjlo7D86l5qjNtgQZMP/exec";
 
@@ -10,6 +11,16 @@ $(document).ready(function () {
   loadDataFromLocalStorage();
   renderParticipants();
   renderWinners();
+
+  // Vòng quay (tab khác) vừa có người trúng -> nạp lại để không ghi đè dữ liệu cũ
+  window.addEventListener("storage", function (e) {
+    if (e.key !== "luckydraw_participants" && e.key !== "luckydraw_winners") {
+      return;
+    }
+    loadDataFromLocalStorage();
+    renderParticipants();
+    renderWinners();
+  });
 
   // Event Handlers
   $("#add-participant-form").submit(function (e) {
@@ -99,7 +110,7 @@ $(document).ready(function () {
     }
 
     const participant = {
-      id: Date.now(),
+      id: generateId(),
       name: name,
       createdDate: new Date().toISOString(),
       status: "active",
@@ -135,6 +146,7 @@ $(document).ready(function () {
 
   function deleteParticipant(id) {
     const participant = participants.find((p) => p.id === id);
+    if (!participant) return;
     participants = participants.filter((p) => p.id !== id);
     saveDataToLocalStorage();
     renderParticipants();
@@ -143,6 +155,7 @@ $(document).ready(function () {
 
   function deleteWinner(index) {
     const winner = winners[index];
+    if (!winner) return;
 
     // Store current winner index for modal actions
     window.currentWinnerIndex = index;
@@ -161,6 +174,7 @@ $(document).ready(function () {
   $("#restore-winner-btn").click(function () {
     const index = window.currentWinnerIndex;
     const winner = winners[index];
+    if (!winner) return;
 
     // Remove from winners list
     winners.splice(index, 1);
@@ -186,6 +200,7 @@ $(document).ready(function () {
   $("#delete-winner-btn").click(function () {
     const index = window.currentWinnerIndex;
     const winner = winners[index];
+    if (!winner) return;
 
     // Remove from winners list
     winners.splice(index, 1);
@@ -273,7 +288,7 @@ $(document).ready(function () {
 
   function importCSV(file) {
     // Check file type
-    if (!file.name.endsWith(".csv")) {
+    if (!file.name.toLowerCase().endsWith(".csv")) {
       showToast("Vui lòng chọn file CSV", "danger");
       return;
     }
@@ -288,20 +303,18 @@ $(document).ready(function () {
       let duplicateCount = 0;
       let emptyCount = 0;
 
-      lines.forEach((line) => {
-        let name = line.trim();
-
-        // Remove surrounding quotes if present
-        if (
-          (name.startsWith('"') && name.endsWith('"')) ||
-          (name.startsWith("'") && name.endsWith("'"))
-        ) {
-          name = name.slice(1, -1);
-        }
+      lines.forEach((line, lineIndex) => {
+        // Lấy cột đầu tiên (hỗ trợ file có nhiều cột, phân cách , hoặc ;)
+        let name = getFirstCsvColumn(line.replace(/^\uFEFF/, "")).trim();
 
         // Skip empty lines
         if (name === "") {
           emptyCount++;
+          return;
+        }
+
+        // Bỏ qua dòng tiêu đề (Tên, Họ tên, Họ và tên, Name...)
+        if (lineIndex === 0 && HEADER_NAMES.includes(name.toLowerCase())) {
           return;
         }
 
@@ -315,7 +328,7 @@ $(document).ready(function () {
 
         // Add participant
         const participant = {
-          id: Date.now() + addedCount, // Ensure unique IDs
+          id: generateId(),
           name: name,
           createdDate: new Date().toISOString(),
           status: "active",
@@ -336,9 +349,9 @@ $(document).ready(function () {
       if (duplicateCount > 0) {
         message += `, ${duplicateCount} trùng lặp`;
       }
-      if (emptyCount > 0 && emptyCount > 1) {
-        // Don't count single trailing newline
-        message += `, ${emptyCount - 1} dòng trống`;
+      const trailingEmpty = lines[lines.length - 1].trim() === "" ? 1 : 0;
+      if (emptyCount - trailingEmpty > 0) {
+        message += `, ${emptyCount - trailingEmpty} dòng trống`;
       }
 
       const toastType = addedCount > 0 ? "success" : "warning";
@@ -352,18 +365,48 @@ $(document).ready(function () {
     reader.readAsText(file, "UTF-8");
   }
 
+  const HEADER_NAMES = ["tên", "ten", "họ tên", "họ và tên", "name", "full name", "fullname"];
+
+  // Lấy giá trị cột đầu tiên của 1 dòng CSV (có xử lý dấu ngoặc kép)
+  function getFirstCsvColumn(line) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith('"')) {
+      let value = "";
+      for (let i = 1; i < trimmed.length; i++) {
+        const ch = trimmed[i];
+        if (ch === '"') {
+          if (trimmed[i + 1] === '"') {
+            value += '"';
+            i++;
+          } else {
+            return value;
+          }
+        } else {
+          value += ch;
+        }
+      }
+      return value;
+    }
+    let value = trimmed.split(/[,;\t]/)[0];
+    if (value.startsWith("'") && value.endsWith("'") && value.length > 1) {
+      value = value.slice(1, -1);
+    }
+    return value;
+  }
+
+  // ID duy nhất, tăng dần (tránh trùng khi thêm/import nhiều người cùng lúc)
+  function generateId() {
+    const maxId = participants.reduce((m, p) => Math.max(m, Number(p.id) || 0), 0);
+    return Math.max(Date.now(), maxId + 1);
+  }
+
   function clearAllParticipants() {
-    participants = [];
+    // Chỉ xoá những người đang hiển thị (chưa trúng); người đã trúng được giữ
+    // lại để còn "Chuyển về danh sách tham dự" từ danh sách trúng thưởng
+    participants = participants.filter((p) => p.status !== "active");
     saveDataToLocalStorage();
     renderParticipants();
     showToast("Đã xóa tất cả người tham dự", "info");
-  }
-
-  function clearAllWinners() {
-    winners = [];
-    saveDataToLocalStorage();
-    renderWinners();
-    showToast("Đã xóa tất cả người trúng thưởng", "info");
   }
 
   function renderParticipants() {
@@ -421,9 +464,6 @@ $(document).ready(function () {
 
     let html = "";
     winners.forEach((winner, index) => {
-      // const winTime = new Date(winner.winTime);
-      // const timeStr = formatDateTime(winTime);
-
       html += `
         <div class="winner-item">
           <span class="winner-badge"><i class="bi bi-trophy-fill"></i> #${
@@ -474,6 +514,11 @@ $(document).ready(function () {
   }
 
   function syncDataToServer() {
+    if (!SCRIPT_URL) {
+      showToast("Chưa cấu hình SCRIPT_URL trong dashboard.js", "warning");
+      return;
+    }
+
     showLoading(true);
 
     const data = {
@@ -482,14 +527,28 @@ $(document).ready(function () {
       winners: winners,
     };
 
+    // Gửi dạng text/plain để không phát sinh CORS preflight với Apps Script,
+    // nhờ vậy đọc được phản hồi và biết đồng bộ thành công hay thất bại.
     fetch(SCRIPT_URL, {
       method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify(data),
-      mode: "no-cors",
     })
-      .then(() => {
+      .then((res) => {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.json();
+      })
+      .then((result) => {
         showLoading(false);
-        showToast("Đã đồng bộ dữ liệu lên Google Sheets", "success");
+        if (result && result.success && result.message === "Đã đồng bộ") {
+          showToast(
+            `Đã đồng bộ lên Google Sheets: ${result.participants} người tham dự, ${result.winners} người trúng`,
+            "success"
+          );
+        } else {
+          const reason = (result && result.error) || "Apps Script chưa hỗ trợ action sync";
+          showToast("Đồng bộ thất bại: " + reason, "danger");
+        }
       })
       .catch((error) => {
         showLoading(false);
@@ -531,10 +590,8 @@ $(document).ready(function () {
         box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         z-index: 10000;
         animation: slideInRight 0.3s ease;
-      ">
-        ${message}
-      </div>
-    `);
+      "></div>
+    `).text(message); // .text() để tên người dùng không bị hiểu là HTML
 
     $("body").append(toast);
 
@@ -543,16 +600,6 @@ $(document).ready(function () {
         $(this).remove();
       });
     }, 3000);
-  }
-
-  function formatDateTime(date) {
-    const day = String(date.getDate()).padStart(2, "0");
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const year = date.getFullYear();
-    const hours = String(date.getHours()).padStart(2, "0");
-    const minutes = String(date.getMinutes()).padStart(2, "0");
-
-    return `${day}/${month}/${year} ${hours}:${minutes}`;
   }
 
   function escapeHtml(text) {

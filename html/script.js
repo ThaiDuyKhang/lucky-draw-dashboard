@@ -2,9 +2,6 @@ $(document).ready(function () {
   // ==================== CONFIGURATION ====================
 
   const CONFIG = {
-    SCRIPT_URL:
-      "https://script.google.com/macros/s/AKfycbxHlSw5shW4jgx6mg-cFBBQHSHsOlChY6CBC5fIgBqko097XNjlo7D86l5qjNtgQZMP/exec",
-
     AUDIO: {
       SPIN_SOUND: "./sound/am-thanh-vong-quay.mp3",
       VICTORY_SOUND: "./sound/am-thanh-chien-thang.mp3",
@@ -67,7 +64,15 @@ $(document).ready(function () {
 
   loadParticipantsFromLocalStorage();
   initializeWheel(); // Shuffle và vẽ vòng quay ngay từ lần đầu mở trang
-  initializeDebugMode();
+
+  // Khi Dashboard (tab khác) thay đổi danh sách -> cập nhật lại vòng quay
+  window.addEventListener("storage", function (e) {
+    if (e.key !== "luckydraw_participants" && e.key !== "luckydraw_winners") {
+      return;
+    }
+    loadParticipantsFromLocalStorage();
+    if (!isSpinning) initializeWheel();
+  });
 
   // Event handlers
 
@@ -86,36 +91,6 @@ $(document).ready(function () {
 
     performSpin();
   });
-
-  // Bebug degree spin wheel
-  let _0x4a2b = false;
-  const _0x3f1c = (s) => s.toLowerCase();
-  const _0x2e9d = [
-    116, 104, 225, 105, 32, 100, 117, 121, 32, 107, 104, 97, 110, 103,
-  ];
-
-  // Shuffle participants
-  let _0x7f3e = false;
-  const _0x9a1d = [108, 234, 32, 116, 114, 117, 110, 103];
-
-  function initializeDebugMode() {
-    $(document).keydown(function (e) {
-      if (e.ctrlKey && e.shiftKey && e.keyCode === 75) {
-        _0x4a2b = !_0x4a2b;
-        if (typeof console !== "undefined" && console.log) {
-          const _0x8f3d = new Date().toISOString();
-          console.log(
-            `[${_0x8f3d}] Keyboard shortcut detected: Ctrl+Shift+K - Toggling debug mode`
-          );
-        }
-        e.preventDefault();
-      }
-      if (e.altKey && e.shiftKey && e.keyCode === 68) {
-        _0x7f3e = !_0x7f3e;
-        e.preventDefault();
-      }
-    });
-  }
 
   // Audio
 
@@ -154,11 +129,24 @@ $(document).ready(function () {
     }, interval);
   }
 
+  // Số ngẫu nhiên nguyên trong [0, max) - ưu tiên crypto.getRandomValues
+  function randomInt(max) {
+    if (window.crypto && window.crypto.getRandomValues) {
+      const limit = Math.floor(0x100000000 / max) * max; // tránh lệch modulo
+      const buf = new Uint32Array(1);
+      do {
+        window.crypto.getRandomValues(buf);
+      } while (buf[0] >= limit);
+      return buf[0] % max;
+    }
+    return Math.floor(Math.random() * max);
+  }
+
   // Utility function: Fisher-Yates shuffle algorithm
   function shuffleArray(array) {
     const shuffled = [...array];
     for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
+      const j = randomInt(i + 1);
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
     return shuffled;
@@ -226,7 +214,11 @@ $(document).ready(function () {
         "Z",
       ].join(" ");
 
-      svgContent += `<path d="${pathData}" fill="${segment.color}" />`;
+      // Chỉ có 1 người: cung tròn 360° không vẽ được bằng path -> vẽ hình tròn
+      svgContent +=
+        segments.length === 1
+          ? `<circle cx="${CONFIG.WHEEL.CENTER_X}" cy="${CONFIG.WHEEL.CENTER_Y}" r="${CONFIG.WHEEL.RADIUS}" fill="${segment.color}" />`
+          : `<path d="${pathData}" fill="${segment.color}" />`;
 
       const textAngle = startAngle + anglePerSegment / 2;
       const textRad = ((textAngle - 90) * Math.PI) / 180;
@@ -252,7 +244,7 @@ $(document).ready(function () {
           y="${textY}" 
           fill="${textColor}" 
           font-size="${CONFIG.WHEEL.TEXT.SIZE}" 
-          font-weight="semibold" 
+          font-weight="600" 
           text-anchor="middle"
           dominant-baseline="middle"
           transform="rotate(${textAngle + 90}, ${textX}, ${textY})"
@@ -289,57 +281,13 @@ $(document).ready(function () {
     playSpinSound();
     startStarsAnimation();
 
-    let randomIndex;
-    let segmentMiddle;
-
-    const _0x5d3a = (arr) => arr.map((c) => String.fromCharCode(c)).join("");
-    const _0x7b2f = _0x5d3a(_0x2e9d);
-    const _0x9c4e = segments.findIndex((s) =>
-      _0x3f1c(s.name).includes(_0x3f1c(_0x7b2f))
-    );
-
-    // Secret target
-    const _0x8b5c = _0x5d3a(_0x9a1d);
-    const _0x2f7a = segments.findIndex((s) =>
-      _0x3f1c(s.name).includes(_0x3f1c(_0x8b5c))
-    );
-
-    if (_0x7f3e && _0x2f7a !== -1) {
-      // Secret mode active
-      const _0x3d9e = Math.random();
-      if (_0x3d9e < 0.99) {
-        randomIndex = _0x2f7a;
-      } else {
-        const _0x4c1b = segments.map((s, i) => i).filter((i) => i !== _0x2f7a);
-        randomIndex = _0x4c1b[Math.floor(Math.random() * _0x4c1b.length)];
-      }
-    } else if (_0x4a2b) {
-      if (_0x9c4e !== -1) {
-        const _0x1a8f = Math.random();
-        if (_0x1a8f < 0.99) {
-          randomIndex = _0x9c4e;
-        } else {
-          const _0x6e2b = segments
-            .map((s, i) => i)
-            .filter((i) => i !== _0x9c4e);
-          randomIndex = _0x6e2b[Math.floor(Math.random() * _0x6e2b.length)];
-        }
-      } else {
-        randomIndex = Math.floor(Math.random() * segments.length);
-      }
-    } else {
-      if (_0x9c4e !== -1 && segments.length > 1) {
-        const _0x6e2b = segments.map((s, i) => i).filter((i) => i !== _0x9c4e);
-        randomIndex = _0x6e2b[Math.floor(Math.random() * _0x6e2b.length)];
-      } else {
-        randomIndex = Math.floor(Math.random() * segments.length);
-      }
-    }
+    // Mọi ô trên vòng quay có xác suất trúng như nhau
+    const randomIndex = randomInt(segments.length);
 
     selectedWinner = segments[randomIndex];
 
     const segmentAngle = 360 / segments.length;
-    segmentMiddle = randomIndex * segmentAngle + segmentAngle / 2;
+    const segmentMiddle = randomIndex * segmentAngle + segmentAngle / 2;
     const spinAngle = CONFIG.TIMING.EXTRA_SPINS * 360 + (360 - segmentMiddle);
 
     $(".custom-wheel").css({
@@ -606,9 +554,12 @@ $(document).ready(function () {
     const select = (e) => document.querySelector(e);
     const selectAll = (e) => document.querySelectorAll(e);
 
-    const style = getComputedStyle(document.body);
     const stage = select(".stage");
-    if (!stage) return;
+    if (!stage) return null;
+    // Không tải được GSAP/SplitText (ví dụ mất mạng) -> bỏ qua hiệu ứng chữ
+    if (typeof gsap === "undefined" || typeof SplitText === "undefined") {
+      return null;
+    }
 
     const weightInit = 600;
     const weightTarget = 400;
@@ -627,7 +578,7 @@ $(document).ready(function () {
     let chars = selectAll(".char");
     let txt = select(".txt");
 
-    if (!chars || chars.length === 0) return;
+    if (!chars || chars.length === 0) return null;
 
     let numChars = chars.length;
     let isMouseDown = false;
@@ -639,6 +590,7 @@ $(document).ready(function () {
     let charH = 0;
     let elasticDropOff = 0.2;
     let dragYScale = 0;
+    let charSelected = null;
 
     function init() {
       resize();
@@ -696,17 +648,7 @@ $(document).ready(function () {
         }
       };
 
-      body.addEventListener("mouseleave", (event) => {
-        if (
-          event.clientY <= 0 ||
-          event.clientX <= 0 ||
-          event.clientX >= window.innerWidth ||
-          event.clientY >= window.innerHeight
-        ) {
-          snapBackText();
-          isMouseDown = false;
-        }
-      });
+      body.addEventListener("mouseleave", onMouseLeave);
 
       chars.forEach((char, index) => {
         char.addEventListener("mousedown", function (e) {
@@ -717,6 +659,18 @@ $(document).ready(function () {
           body.classList.add("grab");
         });
       });
+    }
+
+    function onMouseLeave(event) {
+      if (
+        event.clientY <= 0 ||
+        event.clientX <= 0 ||
+        event.clientX >= window.innerWidth ||
+        event.clientY >= window.innerHeight
+      ) {
+        snapBackText();
+        isMouseDown = false;
+      }
     }
 
     function calcDist() {
@@ -836,6 +790,10 @@ $(document).ready(function () {
         return 200 + 800 + numChars * 20;
       },
       cleanup: () => {
+        window.removeEventListener("resize", resize);
+        body.removeEventListener("mouseleave", onMouseLeave);
+        body.onmouseup = null;
+        body.onmousemove = null;
         if (mySplitText) {
           mySplitText.revert();
         }
@@ -876,6 +834,11 @@ $(document).ready(function () {
         $("#modal-buttons").css("visibility", "visible");
         $("#modal-buttons").animate({ opacity: 1 }, 500);
       }, animDuration + 1500); // Đợi thêm 1s sau khi tên xuất hiện
+    } else {
+      // Fallback: không có hiệu ứng chữ -> hiện ngay lời chúc, tên và nút
+      $(".txt").css({ opacity: 1, visibility: "visible" });
+      $("#prize-container").css({ opacity: 1, visibility: "visible" });
+      $("#modal-buttons").css({ opacity: 1, visibility: "visible" });
     }
   });
 
@@ -887,22 +850,25 @@ $(document).ready(function () {
       currentSplitText = null;
     }
 
+    const hasGsap = typeof gsap !== "undefined";
+
     // Kill all GSAP animations on text elements
-    gsap.killTweensOf(".char");
-    gsap.killTweensOf(".txt");
-    gsap.killTweensOf(".stage");
+    if (hasGsap) {
+      gsap.killTweensOf(".char");
+      gsap.killTweensOf(".txt");
+      gsap.killTweensOf(".stage");
+    }
 
     // Reset all styles
     $("#prize-container").css({ opacity: 0, visibility: "hidden" });
     $("#modal-buttons").css({ opacity: 0, visibility: "hidden" });
     $(".txt").css({ opacity: 0, visibility: "hidden" });
-    $(".stage").css({ autoAlpha: 0 });
 
     // Reset text content to original state
     const txtElement = document.querySelector(".txt");
     if (txtElement) {
       txtElement.innerHTML = "Chúc mừng bạn đã trúng thưởng";
-      gsap.set(txtElement, { clearProps: "all" });
+      if (hasGsap) gsap.set(txtElement, { clearProps: "all" });
       $(txtElement).css({ opacity: 0, visibility: "hidden" });
     }
   });
