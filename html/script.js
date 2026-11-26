@@ -359,6 +359,14 @@ $(document).ready(function () {
 
   // Animation
 
+  // Dữ liệu Lottie nạp sẵn từ images/<name>.js (bản sao mới mỗi lần vì lottie
+  // sửa trực tiếp vào object khi chạy)
+  function getLottieData(name) {
+    const data = window.LOTTIE_DATA && window.LOTTIE_DATA[name];
+    if (!data) throw new Error("Thiếu file images/" + name + ".js");
+    return JSON.parse(JSON.stringify(data));
+  }
+
   function startStarsAnimation() {
     const starsContainer = $(`
       <div id="lottie-stars" style="
@@ -381,7 +389,7 @@ $(document).ready(function () {
           renderer: "svg",
           loop: true,
           autoplay: true,
-          path: "./images/stars.json",
+          animationData: getLottieData("stars"),
         });
         console.log("Stars animation started");
       } catch (error) {
@@ -463,15 +471,22 @@ $(document).ready(function () {
 
     $("body").append(lottieContainer);
 
+    let animation = null;
     if (typeof lottie !== "undefined") {
-      const animation = lottie.loadAnimation({
-        container: document.getElementById("lottie-confetti"),
-        renderer: "svg",
-        loop: false,
-        autoplay: true,
-        path: "./images/confetti.json",
-      });
+      try {
+        animation = lottie.loadAnimation({
+          container: document.getElementById("lottie-confetti"),
+          renderer: "svg",
+          loop: false,
+          autoplay: true,
+          animationData: getLottieData("confetti"),
+        });
+      } catch (error) {
+        console.error("Error loading confetti animation:", error);
+      }
+    }
 
+    if (animation) {
       animation.addEventListener("complete", function () {
         setTimeout(() => lottieContainer.remove(), 500);
       });
