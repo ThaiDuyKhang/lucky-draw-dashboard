@@ -34,14 +34,25 @@
                                 </div>
                                 <!-- CSV Import -->
                                 <div>
-                                    <input type="file" id="csv-file-input" accept=".csv" style="display: none;">
+                                    <input type="file" id="csv-file-input"
+                                        accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
+                                        style="display: none;">
                                     <button type="button" class="btn btn-outline-dark w-100 h-100" id="import-csv-btn"
-                                        data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Import CSV">
+                                        data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Import Excel / CSV">
                                         <i class="bi bi-file-earmark-arrow-down-fill fs-5"></i>
                                     </button>
                                 </div>
                             </div>
                             <div class="error-message" id="add-error"></div>
+                            <div class="small text-muted mt-2 sample-download">
+                                <i class="bi bi-info-circle"></i> Import file Excel (.xlsx) hoặc CSV — lấy cột đầu tiên
+                                làm tên. Tải file mẫu:
+                                <a href="./samples/danh-sach-mau.xlsx" download="danh-sach-mau.xlsx">
+                                    <i class="bi bi-file-earmark-excel"></i> Excel</a>
+                                ·
+                                <a href="./samples/danh-sach-mau.csv" download="danh-sach-mau.csv">
+                                    <i class="bi bi-filetype-csv"></i> CSV</a>
+                            </div>
                         </form>
 
                         <div class="participants-header d-flex justify-content-between align-items-center mb-3">
@@ -338,6 +349,8 @@
     </div>
     <link rel="stylesheet" href="./libs/bootstrap-icons.css">
     <script src="./libs/bootstrap.bundle.min.js"></script>
+    <!-- read-excel-file 9.3.20 (MIT) - đọc file .xlsx khi import -->
+    <script src="./libs/read-excel-file.min.js"></script>
     <script src="./gsheet-setup.js"></script>
     <script src="./theme.js"></script>
     <script src="./theme-settings.js"></script>
