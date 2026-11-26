@@ -321,7 +321,7 @@ $(function () {
           <div class="winner-actions">
             ${w.status === "pending" ? `<button class="btn btn-sm btn-success w-confirm"><i class="li icon-check"></i> Xác nhận${state.settings.autoEmail && w.email ? " &amp; gửi mail" : ""}</button>` : ""}
             <div class="btn-group btn-group-sm">
-              <button class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" ${w.email ? "" : "disabled"}>
+              <button class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' ${w.email ? "" : "disabled"}>
                 <i class="li icon-mail"></i> Gửi email
               </button>
               <ul class="dropdown-menu">
@@ -333,7 +333,7 @@ $(function () {
               </ul>
             </div>
             <div class="btn-group btn-group-sm">
-              <button class="btn btn-outline-dark dropdown-toggle" data-bs-toggle="dropdown" aria-label="Thao tác khác"><i class="li icon-ellipsis"></i></button>
+              <button class="btn btn-outline-dark dropdown-toggle" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' aria-label="Thao tác khác"><i class="li icon-ellipsis"></i></button>
               <ul class="dropdown-menu dropdown-menu-end">
                 ${w.status !== "cancelled" ? '<li><a class="dropdown-item w-cancel" href="#"><i class="li icon-circle-x"></i> Huỷ kết quả (không gửi mail)</a></li>' : ""}
                 <li><a class="dropdown-item w-restore" href="#"><i class="li icon-rotate-ccw"></i> Trả về danh sách tham dự</a></li>

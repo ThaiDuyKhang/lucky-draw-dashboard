@@ -11,6 +11,8 @@ body {
     background: radial-gradient(circle, #f3ffe1 35%, #d2ffea 60% 100%);
     background-image: url('./images/bg-2.png');
     background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
     min-height: 100vh;
 }
 
@@ -511,19 +513,13 @@ body {
 
 .winner-card {
     border: 1px solid #e6e6e6;
-    border-left: 4px solid #ffc107;
     border-radius: 10px;
     padding: 12px;
     margin-bottom: 10px;
     background: #fff;
 }
 
-.winner-card.confirmed {
-    border-left-color: var(--color-green);
-}
-
 .winner-card.cancelled {
-    border-left-color: #adb5bd;
     background: #f8f9fa;
 }
 
@@ -750,4 +746,71 @@ body {
     font-weight: 600;
     padding: 2px 10px;
     margin-left: 6px;
+}
+
+/* ===== Điện thoại ===== */
+@media (max-width: 768px) {
+    body {
+        background-attachment: scroll;
+    }
+
+    .admin-nav {
+        position: static;
+    }
+
+    .admin-brand {
+        flex-basis: 100%;
+        font-size: 0.95rem;
+    }
+
+    .admin-tabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .admin-tabs .nav-link {
+        white-space: nowrap;
+        font-size: 0.9rem;
+        padding: 6px 10px;
+    }
+
+    .card-body {
+        padding: 14px;
+    }
+
+    .participants-wrapper,
+    #winners-list {
+        max-height: 60vh;
+    }
+
+    .winner-actions {
+        justify-content: flex-start;
+    }
+
+    #pending-banner {
+        flex-wrap: wrap;
+    }
+
+    .toast-stack {
+        left: 12px;
+        right: 12px;
+        top: 12px;
+        max-width: none;
+    }
+
+    .support-card {
+        margin-top: 56px;
+        padding: 52px 16px 18px;
+    }
+
+    .email-preview {
+        height: 60vh;
+    }
+}
+
+/* Email / tên dài tự xuống dòng, không đẩy mất nút sửa / xoá */
+#participants-list td:nth-child(2),
+.winner-card .small {
+    overflow-wrap: anywhere;
 }

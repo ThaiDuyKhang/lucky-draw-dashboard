@@ -2,13 +2,21 @@
     --color-primary: #3dd397;
 }
 
+html,
+body {
+    min-height: 100%;
+}
+
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: #006B38;
-    background: radial-gradient(circle, #f3ffe1 35%, #d2ffea 60% 100%);
+    min-height: 100vh;
+    min-height: 100dvh;
+    background-color: #0b3d27;
     background-image: url('./images/bg-2.png');
-    overflow: hidden;
     background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    overflow: hidden;
 }
 
 /* Custom cursor với kích thước tối ưu */
@@ -385,15 +393,6 @@ h1.main-title {
 
 /* Responsive */
 @media (max-width: 768px) {
-    .ez-wheel-wrapper {
-        max-width: 300px;
-    }
-
-    .spin-button-image {
-        width: 60px;
-        height: 60px;
-    }
-
     .selector-pointer {
         border-left-width: 15px;
         border-right-width: 15px;
@@ -817,4 +816,93 @@ html:not(.theme-ready) .main-title {
     align-items: center;
     justify-content: center;
     font-size: 0.8rem;
+}
+
+/* ===== Điện thoại / máy tính bảng dọc ===== */
+@media (max-width: 768px), (orientation: portrait) {
+    .container.mt-5 {
+        margin-top: 64px !important;
+        padding-top: 0 !important;
+    }
+
+    h1.main-title {
+        height: min(30vw, 20vh);
+        margin-bottom: 4vh !important;
+    }
+
+    /* Vòng quay chiếm gần hết bề ngang, nhưng không cao quá màn hình */
+    .wheel-container,
+    .ez-wheel-wrapper,
+    .spin-button-wrapper {
+        max-width: min(92vw, 62vh);
+    }
+
+    .txt {
+        font-size: 5.2vw;
+        white-space: nowrap;
+    }
+
+    .char {
+        padding-top: 1.6vw;
+    }
+
+    #prize-container {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        width: 92vw;
+    }
+
+    #prize-text {
+        font-size: clamp(1.8rem, 9vw, 3.5rem);
+    }
+
+    #prize-award-name {
+        font-size: 1.3rem;
+    }
+
+    .prize-award img {
+        max-height: 120px;
+    }
+
+    #modal-buttons {
+        margin-top: 1rem !important;
+    }
+}
+
+@media (max-width: 576px) {
+    .wheel-topbar {
+        top: 8px;
+        left: 8px;
+        right: 8px;
+        gap: 8px;
+    }
+
+    .prize-bar {
+        padding: 6px 8px;
+        max-width: 58vw;
+        gap: 6px;
+    }
+
+    .prize-bar img {
+        width: 36px;
+        height: 36px;
+    }
+
+    .prize-bar select {
+        max-width: 100%;
+    }
+
+    .wheel-links button {
+        font-size: 0.85rem;
+        padding: 8px 12px;
+        opacity: 1;
+    }
+
+    .winners-modal {
+        height: 85vh;
+    }
+
+    .winners-modal .winner-list {
+        grid-template-columns: 1fr;
+    }
 }
