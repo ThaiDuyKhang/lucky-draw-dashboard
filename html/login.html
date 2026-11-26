@@ -21,23 +21,9 @@
                         <h5 class="mb-0"><i class="bi bi-shield-lock"></i> Đăng nhập quản trị</h5>
                     </div>
                     <div class="card-body">
-                        <div id="no-password" class="d-none">
-                            <div class="alert alert-warning small mb-3">
-                                <strong>Chưa đặt mật khẩu admin.</strong> Làm một lần như sau:
-                            </div>
-                            <p class="small fw-semibold mb-1">Trên Cloudflare:</p>
-                            <ol class="small">
-                                <li>Vào <em>Workers &amp; Pages</em> → chọn Worker <code>lucky-draw-dashboard</code>.</li>
-                                <li><em>Settings → Variables and Secrets → Add</em>.</li>
-                                <li>Type: <strong>Secret</strong>, Name: <code>ADMIN_PASSWORD</code>, Value: mật khẩu
-                                    bạn muốn → <strong>Deploy</strong>.</li>
-                                <li>Tải lại trang này.</li>
-                            </ol>
-                            <p class="small fw-semibold mb-1">Chạy trên máy (npm start):</p>
-                            <p class="small">Tạo file <code>.dev.vars</code> ở thư mục dự án với nội dung
-                                <code>ADMIN_PASSWORD=mat-khau-cua-ban</code> rồi chạy lại.</p>
+                        <div id="default-password" class="alert alert-info small d-none">
+                            <i class="bi bi-key"></i> Mật khẩu mặc định: <strong class="user-select-all">12345678</strong>
                         </div>
-
                         <form id="login-form">
                             <label for="password" class="form-label">Mật khẩu</label>
                             <div class="input-group mb-3">
@@ -53,6 +39,21 @@
                             <div class="text-danger small mb-2" id="login-error"></div>
                             <button type="submit" class="btn btn-return w-100" id="login-btn">Đăng nhập</button>
                         </form>
+
+                        <details class="mt-3 small" id="password-guide">
+                            <summary class="text-muted">Cách đổi mật khẩu</summary>
+                            <p class="fw-semibold mb-1 mt-2">Trên Cloudflare:</p>
+                            <ol>
+                                <li>Vào <em>Workers &amp; Pages</em> → chọn Worker <code>lucky-draw-dashboard</code>.</li>
+                                <li><em>Settings → Variables and Secrets → Add</em>.</li>
+                                <li>Type: <strong>Secret</strong>, Name: <code>ADMIN_PASSWORD</code>, Value: mật khẩu
+                                    bạn muốn → <strong>Deploy</strong>.</li>
+                                <li>Đăng nhập lại bằng mật khẩu mới (mật khẩu mặc định không dùng được nữa).</li>
+                            </ol>
+                            <p class="fw-semibold mb-1">Chạy trên máy (npm start):</p>
+                            <p class="mb-0">Tạo file <code>.dev.vars</code> ở thư mục dự án với nội dung
+                                <code>ADMIN_PASSWORD=mat-khau-cua-ban</code> rồi chạy lại.</p>
+                        </details>
                     </div>
                 </div>
                 <p class="text-center mt-3">
@@ -71,9 +72,8 @@
 
             fetch("/api/session").then((r) => r.json()).then((s) => {
                 if (s.loggedIn) location.replace(next);
-                if (!s.passwordSet) {
-                    document.getElementById("no-password").classList.remove("d-none");
-                    document.getElementById("login-form").classList.add("d-none");
+                if (s.defaultPassword) {
+                    document.getElementById("default-password").classList.remove("d-none");
                 }
             }).catch(() => { });
 

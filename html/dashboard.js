@@ -944,6 +944,10 @@ $(function () {
   // ==================== KHỞI ĐỘNG ====================
   refresh();
   Api.live(refresh);
+  fetch("/api/session")
+    .then((r) => r.json())
+    .then((s) => $("#default-password-banner").toggleClass("d-none", !s.defaultPassword))
+    .catch(() => {});
   // Cập nhật nhãn "Đang quay" khi tới giờ công bố
   setInterval(() => {
     if (state && state.winners.some((w) => (w.revealAt || 0) > Date.now() - 2000)) refresh();
