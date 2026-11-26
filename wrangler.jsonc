@@ -1,0 +1,9 @@
+// Cấu hình Cloudflare Workers: phục vụ web tĩnh trong thư mục html/
+// "name" phải trùng Project name đặt trên Cloudflare.
+{
+  "name": "lucky-draw-dashboard",
+  "compatibility_date": "2025-09-01",
+  "assets": {
+    "directory": "./html"
+  }
+}
