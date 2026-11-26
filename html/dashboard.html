@@ -51,6 +51,8 @@
                     type="button"><i class="li icon-palette"></i> Giao diện</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-data"
                     type="button"><i class="li icon-database"></i> Dữ liệu</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-support"
+                    type="button"><i class="li icon-coffee"></i> Ủng hộ</button></li>
         </ul>
 
         <div class="tab-content">
@@ -359,6 +361,42 @@
                                         class="li icon-trash-2"></i> Xoá toàn bộ người tham dự &amp; trúng thưởng</button>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= ỦNG HỘ ================= -->
+            <div class="tab-pane fade" id="tab-support">
+                <div class="support-card">
+                    <div class="support-icon"><i class="li icon-coffee"></i></div>
+                    <h4 class="support-title">Ủng hộ tác giả</h4>
+                    <p class="support-desc">Vòng quay may mắn miễn phí cho mọi người. Nếu app giúp sự kiện của bạn vui
+                        và công bằng hơn, ủng hộ một chút để tác giả duy trì máy chủ và phát triển thêm tính năng nhé!</p>
+                    <div class="support-amounts" id="support-amounts">
+                        <button type="button" data-amount="20000">20k</button>
+                        <button type="button" data-amount="30000" class="active">30k</button>
+                        <button type="button" data-amount="50000">50k</button>
+                        <button type="button" data-amount="100000">100k</button>
+                        <button type="button" data-amount="">Tuỳ ý</button>
+                    </div>
+                    <div class="support-custom d-none" id="support-custom">
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="support-custom-amount" min="1000" step="1000"
+                                placeholder="Nhập số tiền (VNĐ)">
+                            <span class="input-group-text">đ</span>
+                        </div>
+                    </div>
+                    <div class="support-qr">
+                        <img id="support-qr" alt="Mã VietQR chuyển khoản ủng hộ tác giả">
+                        <div class="support-qr-error d-none" id="support-qr-error">Không tải được mã QR.<br>Hãy chuyển
+                            khoản theo thông tin bên dưới.</div>
+                    </div>
+                    <div class="support-info">
+                        <div><span>Ngân hàng</span><strong>MB</strong></div>
+                        <div><span>Số tài khoản</span><strong>6006101991 <button type="button" class="support-copy"
+                                    data-copy="6006101991">Sao chép</button></strong></div>
+                        <div><span>Chủ tài khoản</span><strong>THAI DUY KHANG</strong></div>
+                        <div><span>Nội dung</span><strong>Ung ho tac gia</strong></div>
                     </div>
                 </div>
             </div>

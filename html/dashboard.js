@@ -921,6 +921,54 @@ $(function () {
     run("resetAllData", { confirm: "XOA" }, "Đã xoá toàn bộ người tham dự và người trúng thưởng");
   });
 
+  // ==================== ỦNG HỘ TÁC GIẢ ====================
+  const SUPPORT = { bank: "MB", account: "6006101991", name: "THAI DUY KHANG", note: "Ung ho tac gia" };
+
+  function renderSupportQr(amount) {
+    const params = new URLSearchParams({ addInfo: SUPPORT.note, accountName: SUPPORT.name });
+    if (amount > 0) params.set("amount", String(Math.round(amount)));
+    $("#support-qr-error").addClass("d-none");
+    $("#support-qr")
+      .removeClass("d-none")
+      .attr("src", `https://img.vietqr.io/image/${SUPPORT.bank}-${SUPPORT.account}-compact2.png?${params}`);
+  }
+
+  $("#support-qr").on("error", function () {
+    $(this).addClass("d-none");
+    $("#support-qr-error").removeClass("d-none");
+  });
+
+  $("#support-amounts").on("click", "button", function () {
+    $("#support-amounts button").removeClass("active");
+    $(this).addClass("active");
+    const amount = $(this).data("amount");
+    $("#support-custom").toggleClass("d-none", amount !== "");
+    if (amount === "") {
+      $("#support-custom-amount").trigger("focus");
+      renderSupportQr(Number($("#support-custom-amount").val()) || 0);
+    } else {
+      renderSupportQr(Number(amount));
+    }
+  });
+
+  let supportTimer = null;
+  $("#support-custom-amount").on("input", function () {
+    clearTimeout(supportTimer);
+    supportTimer = setTimeout(() => renderSupportQr(Number($(this).val()) || 0), 400);
+  });
+
+  $(".support-copy").on("click", function () {
+    const btn = $(this);
+    copyText(String(btn.data("copy")), null);
+    btn.text("Đã chép");
+    setTimeout(() => btn.text("Sao chép"), 1500);
+  });
+
+  // Chỉ tải mã QR khi mở tab Ủng hộ
+  $('[data-bs-target="#tab-support"]').on("shown.bs.tab", function () {
+    if (!$("#support-qr").attr("src")) renderSupportQr(30000);
+  });
+
   // ==================== THANH TRÊN ====================
   $("#copy-board-link").on("click", function () {
     copyText(location.origin + "/bang-danh-sach/", null);
@@ -934,7 +982,7 @@ $(function () {
   });
 
   // Mở đúng tab khi tải lại trang (#tab-prizes ...)
-  if (location.hash && $(`[data-bs-target="${location.hash}"]`).length) {
+  if (/^#tab-[a-z]+$/.test(location.hash) && $(`[data-bs-target="${location.hash}"]`).length) {
     bootstrap.Tab.getOrCreateInstance($(`[data-bs-target="${location.hash}"]`)[0]).show();
   }
   $(".admin-tabs [data-bs-toggle=pill]").on("shown.bs.tab", function () {
