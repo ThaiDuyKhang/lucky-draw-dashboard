@@ -1,438 +1,284 @@
 # 🎡 Lucky Draw Dashboard – Vòng quay may mắn
 
-Ứng dụng web **vòng quay may mắn** dùng để bốc thăm trúng thưởng trong sự kiện (year-end party, hội nghị khách hàng, livestream…). Gồm 2 trang:
+Ứng dụng web **quay thưởng cho sự kiện** (year-end party, hội nghị khách hàng, livestream…): nhập danh sách người tham dự, tạo giải thưởng, quay trên màn hình lớn, công bố người trúng kèm hình giải, gửi email thông báo và đồng bộ kết quả lên Google Sheet.
 
-| Trang | File | Dùng để |
-|---|---|---|
-| **Vòng quay** | `html/index.html` | Chiếu lên màn hình lớn, bấm nút để quay và công bố người trúng |
-| **Dashboard** | `html/dashboard.html` | Thêm / import / xoá người tham dự, xem và quản lý danh sách trúng thưởng, đồng bộ lên Google Sheets |
-
-Ứng dụng là **web tĩnh thuần HTML/CSS/JS** (jQuery + Bootstrap 5 + GSAP + Lottie), không cần database, không cần build. Mọi thư viện đã nằm sẵn trong `html/libs/` nên **chạy được cả khi không có Internet** (trừ tính năng đồng bộ Google Sheets), và có thể **mở thẳng file `index.html`** mà không cần cài gì.
+Chạy trên **Cloudflare Workers** (miễn phí), dữ liệu lưu trên máy chủ nên **nhiều máy dùng cùng lúc**: admin chỉnh trên laptop, máy chiếu tự cập nhật.
 
 ---
 
 ## Mục lục
 
 1. [Tính năng](#1-tính-năng)
-2. [Cấu trúc thư mục](#2-cấu-trúc-thư-mục)
-3. [Chạy trên máy (không cần Docker)](#3-chạy-trên-máy-không-cần-docker)
-4. [Triển khai lên server](#4-triển-khai-lên-server)
-5. [Hướng dẫn sử dụng](#5-hướng-dẫn-sử-dụng)
-6. [Import danh sách từ file CSV / Excel](#6-import-danh-sách-từ-file-csv--excel)
-7. [Đồng bộ Google Sheets (tuỳ chọn)](#7-đồng-bộ-google-sheets-tuỳ-chọn)
-8. [Tuỳ biến giao diện & thông số](#8-tuỳ-biến-giao-diện--thông-số)
-9. [Dữ liệu được lưu ở đâu?](#9-dữ-liệu-được-lưu-ở-đâu)
-10. [Checklist trước ngày sự kiện](#10-checklist-trước-ngày-sự-kiện)
-11. [Xử lý sự cố thường gặp](#11-xử-lý-sự-cố-thường-gặp)
+2. [Các trang](#2-các-trang)
+3. [Đưa lên Cloudflare (khuyên dùng)](#3-đưa-lên-cloudflare-khuyên-dùng)
+4. [Mật khẩu quản trị](#4-mật-khẩu-quản-trị)
+5. [Chạy trên máy / máy chủ riêng](#5-chạy-trên-máy--máy-chủ-riêng)
+6. [Hướng dẫn sử dụng trong sự kiện](#6-hướng-dẫn-sử-dụng-trong-sự-kiện)
+7. [Danh sách người tham dự (Excel / CSV)](#7-danh-sách-người-tham-dự-excel--csv)
+8. [Giải thưởng](#8-giải-thưởng)
+9. [Người trúng & email](#9-người-trúng--email)
+10. [Kết nối Google: gửi email & Google Sheet](#10-kết-nối-google-gửi-email--google-sheet)
+11. [Tuỳ chỉnh giao diện](#11-tuỳ-chỉnh-giao-diện)
+12. [Dữ liệu & sao lưu](#12-dữ-liệu--sao-lưu)
+13. [Checklist trước ngày sự kiện](#13-checklist-trước-ngày-sự-kiện)
+14. [Xử lý sự cố](#14-xử-lý-sự-cố)
+15. [Cấu trúc thư mục](#15-cấu-trúc-thư-mục)
+16. [Ủng hộ tác giả](#16-ủng-hộ-tác-giả)
 
 ---
 
 ## 1. Tính năng
 
-**Vòng quay (`index.html`)**
-- Vòng quay vẽ bằng SVG, tự chia ô theo số người tham dự (1 người cũng quay được).
-- Thứ tự các ô được **xáo trộn ngẫu nhiên** mỗi lần tải trang / sau mỗi lượt.
-- Người trúng được chọn ngẫu nhiên với **xác suất bằng nhau** cho mọi người (dùng `crypto.getRandomValues` của trình duyệt).
-- Hiệu ứng: âm thanh quay (tự giảm dần âm lượng), sao lấp lánh, pháo giấy (Lottie), chữ “Chúc mừng” động (GSAP SplitText), âm thanh chiến thắng.
-- Người đã trúng **tự động bị loại** khỏi vòng quay ở các lượt sau.
+- **Vòng quay** vẽ theo số người tham dự, hiệu ứng âm thanh, sao, pháo giấy, chữ chúc mừng động.
+- **Công bằng**: người trúng do **máy chủ chọn ngẫu nhiên** (mọi người có xác suất như nhau), người đã trúng tự bị loại ở lượt sau.
+- **Nhiều giải, có số lượng** (Giải Ba ×5, Giải Nhì ×3…). Mỗi giải là **hiện vật** (tên + hình) hoặc **mã giảm giá** (mã riêng cho từng người theo tiền tố, hoặc 1 mã chung). Hình + tên giải hiện ngay khi công bố.
+- **Bảng danh sách công khai** để chiếu / chia sẻ link: tự cập nhật, không lộ email, mã giảm giá; người trúng chỉ hiện **sau khi** vòng quay dừng.
+- **Email** qua Gmail của bạn: thông báo trúng thưởng, thư huỷ & xin lỗi; mẫu email chỉnh được, xem trước, gửi thử; tuỳ chọn tự gửi khi xác nhận người trúng.
+- **Import Excel (.xlsx) / CSV** có cột email, file mẫu tải ngay trong Dashboard.
+- **Đồng bộ Google Sheet**, xuất danh sách trúng thưởng ra CSV.
+- **Tuỳ chỉnh giao diện**: ảnh nền, ảnh tiêu đề, nút mũi tên, vành vòng quay, 6 màu + bảng màu có sẵn.
 
-**Dashboard (`dashboard.html`)**
-- Thêm người tham dự thủ công (chống trùng tên, không phân biệt hoa/thường).
-- Import hàng loạt từ file `.csv`.
-- Xoá từng người / xoá tất cả (có hộp thoại xác nhận).
-- Danh sách trúng thưởng theo thứ tự lượt quay. Với mỗi người trúng có thể:
-  - **Chuyển về danh sách tham dự** (cho quay lại – ví dụ người trúng vắng mặt), hoặc
-  - **Xoá hẳn**.
-- Đồng bộ danh sách lên Google Sheets (tuỳ chọn).
+## 2. Các trang
 
-**Hai trang tự cập nhật cho nhau**: mở Vòng quay ở một tab và Dashboard ở tab khác (cùng trình duyệt) — khi quay xong, Dashboard tự hiện người trúng; khi sửa danh sách ở Dashboard, vòng quay tự vẽ lại.
-
----
-
-## 2. Cấu trúc thư mục
-
-```
-lucky-draw-dashboard/
-├── html/                      # Toàn bộ website (đây là thư mục public)
-│   ├── index.html             # Trang vòng quay
-│   ├── script.js              # Logic vòng quay (CONFIG ở đầu file)
-│   ├── style.css              # Giao diện vòng quay
-│   ├── dashboard.html         # Trang quản lý
-│   ├── dashboard.js           # Logic quản lý (SCRIPT_URL ở đầu file)
-│   ├── dashboard.css          # Giao diện quản lý
-│   ├── images/                # Ảnh nền, vòng quay, nút, con trỏ, hiệu ứng Lottie (stars.js, confetti.js)
-│   ├── sound/                 # Âm thanh quay & chiến thắng
-│   └── libs/                  # jQuery, Bootstrap, Bootstrap Icons, GSAP, SplitText, Lottie, font
-├── apps-script/
-│   └── Code.gs                # Code Google Apps Script cho tính năng đồng bộ Google Sheets
-├── sample_participants.csv    # File mẫu 70 người để thử import
-├── start-windows.bat          # Windows: nhấp đúp để chạy (gọi start-server.ps1)
-├── start-server.ps1           # Web server bằng PowerShell có sẵn của Windows
-├── start.sh                   # macOS/Linux: chạy bằng Node.js hoặc Python
-├── server.js                  # Web server Node.js không cần cài thư viện (npm start)
-├── package.json
-├── docker-compose.yml         # Chạy bằng Docker (nginx:alpine)
-├── nginx.conf                 # Cấu hình nginx cho Docker
-└── README.md
-```
+| Đường dẫn | Ai dùng | Nội dung |
+|---|---|---|
+| `/bang-danh-sach/` | **Mọi người** (không cần đăng nhập) | Người tham dự + người trúng theo từng giải. Chiếu lên màn hình phụ hoặc gửi link cho khách xem trên điện thoại. |
+| `/login` | Admin | Đăng nhập |
+| `/` | Admin | **Vòng quay** – chiếu lên màn hình chính. Góc trái chọn giải đang quay, góc phải xem danh sách trúng thưởng. |
+| `/dashboard` | Admin | Quản trị: người tham dự, giải thưởng, người trúng & email, kết nối Google, giao diện, dữ liệu, ủng hộ. |
 
 ---
 
-## 3. Chạy trên máy (không cần Docker)
+## 3. Đưa lên Cloudflare (khuyên dùng)
 
-Chọn **một** trong các cách dưới đây — cách 1 và 2 không cần cài thêm gì.
+Cần: tài khoản [GitHub](https://github.com) và [Cloudflare](https://dash.cloudflare.com/sign-up) (gói Free là đủ). Không cần tạo database – dữ liệu lưu trong Durable Object được tạo tự động.
 
-| Cách | Hệ điều hành | Cần cài | Làm gì |
-|---|---|---|---|
-| **1. Mở trực tiếp file** | Mọi HĐH | Không | Nhấp đúp `html/index.html` |
-| **2. File khởi động Windows** | Windows 10/11 | Không | Nhấp đúp `start-windows.bat` |
-| **3. File khởi động macOS/Linux** | macOS, Linux | Node.js *hoặc* Python 3 | Chạy `./start.sh` |
-| **4. Node.js** | Mọi HĐH | Node.js ≥ 14 | `npm start` |
-| **5. Python** | Mọi HĐH | Python 3 | `python -m http.server 8080 -d html` |
-| **6. VS Code Live Server** | Mọi HĐH | VS Code + extension | *Open with Live Server* |
-| **7. Docker** | Mọi HĐH | Docker | `docker compose up -d` |
+1. **Fork** repo này về GitHub của bạn (nút *Fork* góc phải trên).
+2. Vào Cloudflare → **Workers & Pages** → **Create** → **Import a repository** → kết nối GitHub và chọn repo vừa fork.
+3. Điền:
 
-Với cách 2 → 7, mở trình duyệt tại:
-- Vòng quay: <http://localhost:8080/>
-- Dashboard: <http://localhost:8080/dashboard.html>
+   | Ô | Giá trị |
+   |---|---|
+   | Project name | `lucky-draw-dashboard` (phải trùng `"name"` trong `wrangler.jsonc`) |
+   | Build command | *để trống* |
+   | Deploy command | `npx wrangler deploy` |
 
-### Cách 1 – Mở trực tiếp file (đơn giản nhất)
+4. Bấm **Deploy**. Sau 1–2 phút web chạy tại `https://lucky-draw-dashboard.<tài-khoản>.workers.dev`.
+5. Mở `/login`, đăng nhập bằng mật khẩu mặc định **`12345678`**, rồi [đổi mật khẩu](#4-mật-khẩu-quản-trị).
 
-1. Tải repo về (nút **Code → Download ZIP** trên GitHub) và giải nén.
-2. Mở thư mục `html`, **nhấp đúp `dashboard.html`** để nhập danh sách.
-3. Bấm **Đến vòng quay** (hoặc nhấp đúp `index.html`) để quay.
+**Tự cập nhật:** mỗi lần push lên nhánh `main`, Cloudflare tự build và deploy lại (xem tiến trình ở tab *Deployments* của Worker). Dữ liệu không bị mất khi deploy.
 
-> ⚠️ Lưu ý khi mở trực tiếp file:
-> - Dùng **Chrome** hoặc **Edge**. Firefox có thể không chia sẻ dữ liệu giữa 2 trang khi mở dạng file.
-> - Danh sách được lưu theo trình duyệt; nếu **di chuyển/đổi tên thư mục** thì vẫn giữ (Chrome/Edge lưu chung cho mọi file `file://`), nhưng nếu đổi sang chạy bằng server (`http://localhost…`) thì phải nhập lại.
-> - Đồng bộ Google Sheets vẫn hoạt động nếu máy có Internet.
+**Tên miền riêng** (không bắt buộc): Worker → *Settings → Domains & Routes → Add → Custom domain*.
 
-### Cách 2 – Windows: nhấp đúp `start-windows.bat`
+## 4. Mật khẩu quản trị
 
-- Nhấp đúp file **`start-windows.bat`** ở thư mục gốc repo. Một cửa sổ đen hiện ra và trình duyệt tự mở vòng quay.
-- **Giữ cửa sổ đen đó mở** trong suốt sự kiện; đóng nó là tắt web.
-- Dùng PowerShell có sẵn của Windows, không cần cài Node/Python.
-- Nếu Windows hiện cảnh báo *“Windows protected your PC”*: bấm **More info → Run anyway**.
-- Báo lỗi cổng 8080 đang bận: mở `start-server.ps1` bằng Notepad, sửa `$Port = 8080` thành `8081`.
+- Chưa đặt mật khẩu → dùng mật khẩu mặc định **`12345678`** (trang đăng nhập có ghi). Ai có link cũng vào được Dashboard.
+- **Đổi mật khẩu trên Cloudflare:** Worker `lucky-draw-dashboard` → **Settings → Variables and Secrets → Add** → Type: **Secret**, Name: `ADMIN_PASSWORD`, Value: mật khẩu mới → **Deploy**. Từ lúc này `12345678` không dùng được nữa và mọi phiên đăng nhập cũ bị đăng xuất.
+- **Đổi mật khẩu khi chạy trên máy:** sửa file `.dev.vars` ở thư mục dự án thành `ADMIN_PASSWORD=mat-khau-moi` rồi chạy lại.
+- Sai mật khẩu 10 lần liên tiếp → khoá đăng nhập từ IP đó 10 phút.
 
-### Cách 3 – macOS / Linux: `./start.sh`
+> ⚠️ Admin có thể quay thưởng, xoá dữ liệu và gửi email từ Gmail đã kết nối. Trước sự kiện thật nên đặt mật khẩu riêng.
 
-```bash
-cd lucky-draw-dashboard
-./start.sh                # mở cổng 8080
-PORT=8081 ./start.sh      # đổi cổng
-```
+## 5. Chạy trên máy / máy chủ riêng
 
-Script tự dùng Node.js nếu có, nếu không thì dùng Python 3 (macOS thường có sẵn), và tự mở trình duyệt. Nhấn **Ctrl + C** để tắt.
-Nếu báo *Permission denied*: chạy `chmod +x start.sh` một lần.
+Cần **Node.js 20 trở lên** ([tải bản LTS](https://nodejs.org)). Máy chạy giả lập Cloudflare bằng `wrangler dev`; dữ liệu lưu trong thư mục `.wrangler/` của dự án. Chỉ cần Internet ở lần cài đặt đầu (và khi gửi email / đồng bộ Google Sheet).
 
-### Cách 4 – Node.js: `npm start`
+| Hệ điều hành | Cách chạy |
+|---|---|
+| **Windows** | Nhấp đúp `start-windows.bat` |
+| **macOS / Linux** | `./start.sh` (lần đầu có thể cần `chmod +x start.sh`) |
+| **Mọi HĐH** | `npm install` (lần đầu) rồi `npm start` |
+| **Docker** | `docker compose up -d` |
 
-```bash
-cd lucky-draw-dashboard
-npm start                 # hoặc: node server.js
-```
-
-Không cần `npm install` — `server.js` chỉ dùng thư viện có sẵn của Node. Đổi cổng: `PORT=3000 npm start` (PowerShell: `$env:PORT=3000; npm start`).
-
-Muốn chạy nền lâu dài trên VPS (không dùng Docker), dùng PM2:
-
-```bash
-npm install -g pm2
-pm2 start server.js --name vong-quay
-pm2 save && pm2 startup   # tự chạy lại khi khởi động máy
-```
-
-### Cách 5 – Python
-
-```bash
-cd lucky-draw-dashboard
-python -m http.server 8080 -d html      # Windows: py -m http.server 8080 -d html
-```
-
-### Cách 6 – VS Code
-
-Cài extension **Live Server**, mở thư mục `html`, chuột phải `index.html` → **Open with Live Server**.
-
-### Cách 7 – Docker
-
-```bash
-cd lucky-draw-dashboard
-docker compose up -d
-```
+- Lần đầu chạy `start-windows.bat` / `start.sh` sẽ hỏi mật khẩu admin và lưu vào file `.dev.vars`. Chạy bằng `npm start` / Docker mà không có `.dev.vars` thì dùng mật khẩu mặc định `12345678`.
+- Mở `http://localhost:8080/dashboard`. Máy khác trong cùng mạng LAN (máy chiếu, điện thoại) mở `http://<IP-máy-chạy>:8080/bang-danh-sach/`.
+- Tắt: đóng cửa sổ dòng lệnh (hoặc `Ctrl + C`; Docker: `docker compose down`).
+- Docker: dữ liệu nằm trong `.wrangler/` của thư mục dự án – giữ thư mục này khi cập nhật.
 
 ---
 
-## 4. Triển khai lên server
+## 6. Hướng dẫn sử dụng trong sự kiện
 
-Chỉ cần đưa **nội dung thư mục `html/`** lên bất kỳ hosting tĩnh nào.
+**Chuẩn bị (trước sự kiện)**
 
-### 4.1. VPS có Docker
+1. Đăng nhập `/dashboard`.
+2. Tab **Người tham dự & trúng thưởng**: import danh sách (xem [mục 7](#7-danh-sách-người-tham-dự-excel--csv)).
+3. Tab **Giải thưởng**: tạo các giải, sắp xếp thứ tự (nút ↑ ↓).
+4. Tab **Email & Google Sheet**: nhập tên sự kiện, kết nối Google, gửi thử email (xem [mục 10](#10-kết-nối-google-gửi-email--google-sheet)).
+5. Tab **Giao diện**: đổi ảnh / màu theo nhận diện sự kiện.
 
-```bash
-git clone https://github.com/ThaiDuyKhang/lucky-draw-dashboard.git
-cd lucky-draw-dashboard
-docker compose up -d          # web chạy ở cổng 8080
-```
+**Trong sự kiện**
 
-Cập nhật phiên bản mới:
+1. Máy chiếu chính: đăng nhập rồi mở `/` (nút **Mở vòng quay** trên Dashboard), bấm **F11** để toàn màn hình.
+2. (Tuỳ chọn) Màn hình phụ / điện thoại khách: mở `/bang-danh-sach/` (nút 🔗 cạnh *Bảng danh sách* trên Dashboard để sao chép link).
+3. Mỗi lượt: chọn **giải đang quay** ở góc trái màn hình vòng quay → bấm nút giữa vòng quay → chờ ~20 giây → màn hình chúc mừng hiện tên người trúng + giải.
+4. Bấm **Quay tiếp** cho lượt sau, hoặc **Xem danh sách trúng thưởng**.
+5. Người trúng vào hàng **Chờ xác nhận** trên Dashboard. Người có mặt nhận giải → bấm **Xác nhận** (tự gửi email nếu đã bật). Người vắng mặt → **⋯ → Trả về danh sách tham dự** hoặc **Huỷ kết quả** rồi quay lại giải đó.
 
-```bash
-git pull
-docker compose restart
-```
+> Bấm vào trang vòng quay một lần trước khi bắt đầu để trình duyệt cho phép phát âm thanh.
 
-Muốn đổi cổng: sửa dòng `"8080:80"` trong `docker-compose.yml` (ví dụ `"80:80"`).
+## 7. Danh sách người tham dự (Excel / CSV)
 
-### 4.2. aaPanel / nginx có sẵn
+- **Cột A: Họ tên** (bắt buộc), **cột B: Email** (để gửi thông báo, có thể để trống). Các cột sau bị bỏ qua. Dòng tiêu đề (`Họ và tên`, `Tên`, `Name`…) tự được bỏ qua.
+- File mẫu: tab **Người tham dự** → *File mẫu: Excel · CSV* (hoặc `html/samples/` trong repo).
+- Chấp nhận `.xlsx` và `.csv` (phân cách `,` `;` hoặc tab, UTF-8). File `.xls` cũ: mở bằng Excel và lưu lại dạng `.xlsx`.
+- Excel lưu CSV: chọn **CSV UTF-8 (Comma delimited)** để không lỗi dấu tiếng Việt. Google Sheets: *Tệp → Tải xuống → Microsoft Excel (.xlsx)*.
+- Chống trùng: người có email → trùng **email** bị bỏ qua; người không email → trùng **tên** bị bỏ qua. Import lại file có email cho những người đã có tên nhưng chưa có email → **tự bổ sung email**.
+- Sửa / xoá từng người bằng biểu tượng ✏️ / 🗑; **Xóa tất cả** chỉ xoá người **chưa trúng**.
 
-1. **Website → Add site**, nhập tên miền, chọn PHP = *Static*.
-2. Clone repo vào máy chủ, rồi trỏ **Site directory (root)** của website tới thư mục `.../lucky-draw-dashboard/html`.
-   (Hoặc upload nội dung thư mục `html/` vào thư mục gốc của website.)
-3. Bật **SSL** (Let's Encrypt) cho tên miền.
-4. Truy cập `https://ten-mien-cua-ban/` (vòng quay) và `https://ten-mien-cua-ban/dashboard.html`.
+## 8. Giải thưởng
 
-### 4.3. Cloudflare Workers
+Tab **Giải thưởng → Thêm giải**:
 
-Repo đã có sẵn `wrangler.jsonc` (phục vụ thư mục `html/`).
+| Trường | Ý nghĩa |
+|---|---|
+| Tên giải | Hiện trên màn hình công bố, bảng danh sách, email (`{giai}`) |
+| Số lượng | Số người được trúng giải này; `0` = không giới hạn. Hết giải → không quay được giải đó nữa |
+| Hình | Hiện khi công bố người trúng, trên bảng danh sách và trong email |
+| Mô tả | Dùng trong email qua biến `{mo_ta}` |
+| Loại: Hiện vật | Chỉ tên + hình |
+| Loại: Mã giảm giá | **Mức ưu đãi** (`{uu_dai}`, vd `10%`), và cách tạo mã: **mã riêng** = tiền tố + N ký tự ngẫu nhiên (vd `EZVPS10-K7M2QX`), hoặc **mã chung** cho tất cả |
 
-1. Cloudflare Dashboard → **Workers & Pages → Create → Import a repository** → chọn repo này.
-2. Điền:
-   - **Project name**: `lucky-draw-dashboard` (phải trùng `"name"` trong `wrangler.jsonc`; muốn đặt tên khác thì sửa cả trong file).
-   - **Build command**: *để trống*.
-   - **Deploy command**: `npx wrangler deploy`.
-   - **Preview command**: `npx wrangler versions upload` (hoặc giữ mặc định).
-3. Bấm **Deploy**. Web chạy tại `https://lucky-draw-dashboard.<tài-khoản>.workers.dev`, mỗi lần push lên `main` sẽ tự deploy lại.
+- **Quay giải này** để chọn giải đang quay (cũng chọn được ngay trên màn hình vòng quay).
+- Mã giảm giá **không hiện trên màn hình chiếu** – chỉ có trong Dashboard, email và Google Sheet.
+- Chưa tạo giải nào → vòng quay chỉ công bố tên người trúng.
 
-Trang Dashboard mở bằng `/dashboard` (đường dẫn `/dashboard.html` cũng tự chuyển hướng về đó).
+## 9. Người trúng & email
 
-### 4.4. Hosting tĩnh miễn phí (GitHub Pages, Netlify, Vercel, Cloudflare Pages)
-
-Chọn thư mục publish là `html`. Không cần lệnh build.
-
-> 💡 Với GitHub Pages: vào **Settings → Pages**, chọn nhánh `main`. Vì website nằm trong thư mục con `html/`, cách đơn giản nhất là dùng Netlify/Cloudflare Pages và đặt *publish directory* = `html`.
-
----
-
-## 5. Hướng dẫn sử dụng
-
-### Bước 1 – Chuẩn bị danh sách
-
-1. Mở **Dashboard** (`/dashboard.html`).
-2. Thêm người tham dự:
-   - Gõ tên vào ô **“Nhập tên người tham dự…”** → bấm **Thêm** (hoặc Enter), hoặc
-   - Bấm nút biểu tượng file bên cạnh → chọn file `.csv` (xem [mục 6](#6-import-danh-sách-từ-file-csv--excel)).
-3. Kiểm tra số lượng ở dòng **“Danh sách tham dự (N)”**.
-
-### Bước 2 – Quay thưởng
-
-1. Bấm **Đến vòng quay** (hoặc mở `/index.html`) — nên bật chế độ toàn màn hình bằng phím **F11**.
-2. Bấm nút ở giữa vòng quay. Vòng quay chạy khoảng **20 giây**, sau đó hiện màn hình chúc mừng với tên người trúng.
-3. Bấm:
-   - **Quay tiếp** để quay lượt sau (người vừa trúng đã bị loại khỏi vòng quay), hoặc
-   - **Xem danh sách trúng thưởng** để mở Dashboard.
-
-> 🔊 Trình duyệt chỉ cho phát âm thanh sau khi người dùng đã tương tác với trang. Hãy bấm vào trang một lần trước khi bắt đầu (lần bấm nút quay đầu tiên cũng tính).
-
-### Bước 3 – Quản lý kết quả
-
-Trong khung **Danh sách trúng thưởng** của Dashboard:
+Mỗi người trúng có trạng thái: **Chờ xác nhận** → **Đã xác nhận** hoặc **Đã huỷ**.
 
 | Thao tác | Kết quả |
 |---|---|
-| Biểu tượng thùng rác cạnh 1 người → **Chuyển về danh sách tham dự** | Huỷ kết quả của người đó, họ được quay lại ở lượt sau (dùng khi người trúng vắng mặt) |
-| Biểu tượng thùng rác cạnh 1 người → **Xóa** | Xoá hẳn người đó khỏi cả danh sách trúng và danh sách tham dự |
-| **Xóa tất cả** → **Chuyển tất cả về danh sách tham dự** | Reset toàn bộ kết quả, mọi người được quay lại từ đầu |
-| **Xóa tất cả** → **Xóa tất cả** | Xoá hẳn tất cả người đã trúng |
+| **Xác nhận** (hoặc *Xác nhận tất cả* ở thanh vàng phía trên) | Chuyển *Đã xác nhận*; nếu bật **Tự động gửi email** thì gửi luôn thông báo trúng thưởng |
+| **Gửi email ▾ → Thông báo trúng thưởng** | Gửi email chúc mừng (kèm hình giải, mã giảm giá nếu có) |
+| **Gửi email ▾ → Thông báo huỷ và xin lỗi** | Gửi thư xin lỗi, kết quả chuyển *Đã huỷ*, giải được trả lại để quay tiếp |
+| **Gửi email ▾ → Xem trước** | Xem nội dung email trước khi gửi |
+| **⋯ → Huỷ kết quả** | Huỷ, không gửi mail; người này không tham gia lượt sau |
+| **⋯ → Trả về danh sách tham dự** | Xoá kết quả, người này được quay lại ở các lượt sau |
+| **⋯ → Xoá hẳn** | Xoá khỏi cả danh sách trúng và danh sách tham dự |
+| Nút ⬇ (góc phải khung) | Tải danh sách trúng thưởng `.csv` |
 
-Nút **Xóa tất cả** ở khung *Danh sách tham dự* chỉ xoá **những người chưa trúng** (đúng những người đang hiển thị); danh sách trúng thưởng giữ nguyên.
+Huy hiệu email cho biết đã gửi gì, lúc nào, hay bị lỗi (rê chuột vào để xem lỗi).
 
-### Bước 4 – Lưu kết quả
+**Mẫu email** (tab *Email & Google Sheet → Mẫu email*): sửa tiêu đề / nội dung cho cả 2 loại thư. Biến dùng được:
 
-- Bấm **Đồng bộ Google Sheet** (nếu đã cấu hình — xem [mục 7](#7-đồng-bộ-google-sheets-tuỳ-chọn)), hoặc
-- Chụp màn hình danh sách trúng thưởng.
+| Biến | Giá trị |
+|---|---|
+| `{ten}` | Tên người trúng |
+| `{giai}` | Tên giải |
+| `{ma}` | Mã giảm giá |
+| `{uu_dai}` | Mức ưu đãi |
+| `{mo_ta}` | Mô tả giải |
+| `{su_kien}` | Tên sự kiện |
 
----
+Dòng nào chứa biến không có giá trị (vd `{ma}` với giải hiện vật) tự bị bỏ. Bấm **Xem trước** để kiểm tra, **Khôi phục mẫu mặc định** để quay lại nội dung gốc.
 
-## 6. Import danh sách từ file CSV / Excel
+## 10. Kết nối Google: gửi email & Google Sheet
 
-### Định dạng file
+Email được gửi từ **Gmail của bạn** qua Google Apps Script (Gmail thường ~100 email/ngày, Google Workspace ~1.500/ngày). Làm **1 lần**, theo đúng hướng dẫn trong tab **Email & Google Sheet**:
 
-- Mỗi dòng **một người**, lấy **cột đầu tiên** làm tên. Các cột sau (email, số điện thoại…) được bỏ qua.
-- Chấp nhận phân cách bằng dấu phẩy `,`, chấm phẩy `;` hoặc tab.
-- Tên có dấu phẩy thì đặt trong ngoặc kép: `"Nguyễn Văn A, Phòng Kế toán"`.
-- Dòng tiêu đề đầu tiên (`Tên`, `Họ tên`, `Họ và tên`, `Name`, `Full name`) sẽ tự động được bỏ qua.
-- Dòng trống và tên trùng (không phân biệt hoa/thường) được bỏ qua; số lượng được báo lại sau khi import.
+1. Tạo Google Sheet mới ([sheets.new](https://sheets.new)) → menu **Tiện ích mở rộng → Apps Script**.
+2. Trong Dashboard bấm **Sao chép code** (code đã có sẵn **mã bí mật** của bạn). Trong Apps Script, mở file có sẵn (`Code.gs` / `Mã.gs`), **xoá hết code cũ**, dán vào, bấm **Lưu**.
+   ⚠️ **Không tạo thêm file mới** – 2 file cùng chứa code sẽ báo lỗi *"Identifier 'SECRET' has already been declared"*.
+3. **Cấp quyền:** ở ô chọn hàm trên thanh công cụ (cạnh nút *Gỡ lỗi*) chọn **`capQuyen`** → **▷ Chạy** → **Xem xét quyền** → chọn tài khoản → nếu Google cảnh báo chọn *Advanced → Go to … (unsafe)* → **Cho phép**.
+4. **Triển khai → Tùy chọn triển khai mới** → bánh răng → **Ứng dụng web**; *Thực thi dưới dạng*: **Tôi**; *Người có quyền truy cập*: **Bất kỳ ai** → **Triển khai** → sao chép **URL ứng dụng web** (kết thúc bằng `/exec`).
+5. Dán URL vào Dashboard → **Lưu** → **Kiểm tra** → nhập email của bạn → **Gửi thử**.
 
-Ví dụ hợp lệ:
+**Khi sửa code Apps Script** (hoặc bấm *Đổi mã bí mật*): dán lại code → chạy lại `capQuyen` → **Triển khai → Quản lý các bản triển khai → ✏️ → Phiên bản: Phiên bản mới → Triển khai** (URL giữ nguyên).
 
-```csv
-Họ và tên,Phòng ban
-Dương Thanh Bình,Kinh doanh
-"Nguyễn Thành Thảo",Kỹ thuật
-Hoàng Long,Kế toán
+**Đồng bộ Google Sheet:** bấm **Đồng bộ lên Google Sheet** → ghi đè 2 trang tính `Nguoi tham du` và `Trung thuong` (tự tạo nếu chưa có) bằng dữ liệu mới nhất.
+
+Cài đặt chung cùng tab: **Tên sự kiện** (biến `{su_kien}`), **Tên người gửi email**, và **Tự động gửi email trúng thưởng khi bấm Xác nhận**.
+
+## 11. Tuỳ chỉnh giao diện
+
+Tab **Giao diện** – áp dụng ngay cho mọi màn hình đang mở:
+
+| Ảnh | Gợi ý |
+|---|---|
+| Ảnh nền | 1920×1080, JPG/PNG |
+| Ảnh tiêu đề | PNG nền trong suốt, khung ngang (vd 3000×1000) |
+| Nút mũi tên (giữa vòng quay) | PNG vuông nền trong suốt, mũi tên ở chính giữa cạnh trên, cùng kích thước ảnh vành |
+| Vành vòng quay | PNG vuông nền trong suốt, giữa trong suốt |
+
+Ảnh được tự thu nhỏ trước khi tải lên. Nút ↺ cạnh mỗi ảnh để về ảnh mặc định.
+**Màu vòng quay:** 6 bảng màu có sẵn hoặc chỉnh 6 màu (ô lẻ / chẵn, chữ, tâm) với hình xem trước.
+
+Muốn đổi mặc định ngay trong code: ảnh ở `html/images/`, âm thanh ở `html/sound/`, thời gian quay ở `CONFIG.TIMING` đầu file `html/script.js` (`SPIN_DURATION` mặc định 20 giây).
+
+## 12. Dữ liệu & sao lưu
+
+- Toàn bộ dữ liệu (người tham dự, giải, người trúng, cài đặt, ảnh) lưu trên máy chủ Cloudflare (hoặc thư mục `.wrangler/` khi chạy trên máy). Đổi máy / trình duyệt không mất dữ liệu.
+- Sao lưu: **Đồng bộ lên Google Sheet** hoặc tải **CSV người trúng**.
+- Tab **Dữ liệu**:
+  - **Nhập dữ liệu từ bản cũ** – hiện ra nếu trình duyệt còn danh sách của phiên bản cũ (lưu trong trình duyệt).
+  - **Xoá toàn bộ người tham dự & trúng thưởng** (gõ `XOA` để xác nhận) – giữ lại giải thưởng, cài đặt email và giao diện, dùng khi bắt đầu sự kiện mới.
+
+## 13. Checklist trước ngày sự kiện
+
+- [ ] Đã đặt mật khẩu admin riêng.
+- [ ] Import danh sách, kiểm tra số lượng và email.
+- [ ] Tạo đủ giải, đúng số lượng, có hình.
+- [ ] Kết nối Google, **Gửi thử** email tới chính mình, xem trước cả 2 mẫu email.
+- [ ] Quay thử vài lượt → **Xóa tất cả → Trả tất cả về danh sách tham dự** để reset.
+- [ ] Thử âm thanh qua loa hội trường, bật F11, tắt chế độ ngủ của máy chiếu.
+- [ ] Kiểm tra Internet tại địa điểm (bản Cloudflare cần Internet).
+
+## 14. Xử lý sự cố
+
+| Hiện tượng | Cách xử lý |
+|---|---|
+| Không đăng nhập được bằng `12345678` | Đã đặt `ADMIN_PASSWORD` (Cloudflare Secret hoặc `.dev.vars`) – dùng mật khẩu đó |
+| "Sai mật khẩu quá nhiều lần" | Chờ 10 phút rồi thử lại |
+| Gửi email lỗi *"…permission to call MailApp.sendEmail…"* / *"chưa được cấp quyền gửi email"* | Chạy hàm `capQuyen` trong Apps Script ([mục 10](#10-kết-nối-google-gửi-email--google-sheet), bước 3) rồi triển khai **phiên bản mới** |
+| Apps Script báo *"Identifier 'SECRET' has already been declared"* | Có nhiều file chứa code – xoá file thừa, chỉ giữ 1 file |
+| *"Sai mã bí mật"* | Code trong Apps Script cũ hoặc vừa đổi mã bí mật – sao chép lại code từ Dashboard, triển khai phiên bản mới |
+| *"Apps Script trả về trang HTML"* | Web App chưa để quyền **Bất kỳ ai**, hoặc dán nhầm URL (phải kết thúc bằng `/exec`) |
+| *"Đã hết hạn mức gửi email hôm nay"* | Gmail giới hạn ~100 email/ngày – chờ hôm sau hoặc dùng tài khoản Google Workspace |
+| "Giải … đã hết" | Chọn giải khác, hoặc tăng số lượng trong tab Giải thưởng |
+| Màn hình không tự cập nhật | Kiểm tra Internet; trang tự kết nối lại và tải dữ liệu mỗi 20 giây. Bấm `F5` nếu cần |
+| Không có tiếng | Bấm vào trang một lần trước khi quay; kiểm tra tab không bị tắt tiếng |
+| Import Excel ra chữ lỗi | Lưu lại dạng `.xlsx` hoặc **CSV UTF-8** |
+| Sửa code / ảnh mà giao diện không đổi | Chờ Cloudflare deploy xong (tab *Deployments*), rồi `Ctrl + F5` |
+| Cloudflare build lỗi "name mismatch" | Project name trên Cloudflare phải trùng `"name"` trong `wrangler.jsonc` |
+
+## 15. Cấu trúc thư mục
+
+```
+lucky-draw-dashboard/
+├── src/                      # Máy chủ (Cloudflare Worker)
+│   ├── worker.js             # Định tuyến, đăng nhập, API
+│   ├── store.js              # Durable Object: dữ liệu, quay thưởng, giải, người trúng
+│   └── email.js              # Mẫu email + gọi Google Apps Script
+├── html/                     # Giao diện (web tĩnh)
+│   ├── index.html, script.js, style.css         # Vòng quay (/)
+│   ├── dashboard.html, dashboard.js, dashboard.css  # Quản trị (/dashboard)
+│   ├── login.html            # Đăng nhập (/login)
+│   ├── bang-danh-sach/       # Bảng danh sách công khai
+│   ├── js/api.js             # Gọi API, cập nhật trực tiếp, áp dụng giao diện
+│   ├── apps-script/Code.gs   # Code Google Apps Script (Dashboard tự điền mã bí mật)
+│   ├── samples/              # File mẫu danh sách (.xlsx, .csv)
+│   ├── images/, sound/       # Ảnh, hiệu ứng Lottie, âm thanh mặc định
+│   └── libs/                 # jQuery, Bootstrap, GSAP, Lottie, Lucide icons, read-excel-file
+├── wrangler.jsonc            # Cấu hình Cloudflare Workers
+├── package.json              # npm start = chạy trên máy (wrangler dev)
+├── start-windows.bat, start.sh, docker-compose.yml
+└── .dev.vars.example         # Mẫu file mật khẩu khi chạy trên máy
 ```
 
-Xem thêm file mẫu `sample_participants.csv`.
+API chính (dùng nội bộ): `GET /api/state` (công khai), `GET /api/live` (WebSocket), `GET /api/image/:id`, `POST /api/login`, `GET /api/admin/state`, `POST /api/admin/<thao-tác>` (cần đăng nhập + header `X-LD-Admin: 1`).
 
-### Xuất từ Excel / Google Sheets
+Thư viện: [jQuery](https://jquery.com), [Bootstrap 5](https://getbootstrap.com), [GSAP](https://gsap.com), [Lottie-web](https://github.com/airbnb/lottie-web), [Lucide](https://lucide.dev) (ISC), [read-excel-file](https://gitlab.com/catamphetamine/read-excel-file) (MIT), [Wrangler](https://developers.cloudflare.com/workers/wrangler/).
 
-- **Excel**: *File → Save As* → chọn **CSV UTF-8 (Comma delimited) (\*.csv)**.
-  ⚠️ Đừng chọn loại “CSV (Comma delimited)” thường — tiếng Việt có dấu sẽ bị lỗi font.
-- **Google Sheets**: *Tệp → Tải xuống → Giá trị được phân tách bằng dấu phẩy (.csv)*.
+## 16. Ủng hộ tác giả
 
----
+Ứng dụng miễn phí cho mọi người. Nếu app giúp sự kiện của bạn vui và công bằng hơn, bạn có thể ủng hộ để tác giả duy trì máy chủ và phát triển thêm tính năng – mở Dashboard → tab **Ủng hộ** để quét mã VietQR, hoặc chuyển khoản:
 
-## 7. Đồng bộ Google Sheets (tuỳ chọn)
-
-Tính năng này ghi danh sách hiện tại lên Google Sheets để lưu trữ/chia sẻ. Mỗi lần bấm **Đồng bộ Google Sheet**, dữ liệu trên Sheet được **ghi đè** bằng dữ liệu mới nhất trong Dashboard, vào 2 trang tính:
-
-| Sheet | Cột |
+| | |
 |---|---|
-| `Nguoi tham du` | STT, ID, Họ tên, Trạng thái (*Đang tham dự* / *Đã trúng*), Ngày thêm |
-| `Trung thuong` | Lượt, ID, Họ tên, Thời gian trúng |
+| Ngân hàng | MB |
+| Số tài khoản | `6006101991` |
+| Chủ tài khoản | THAI DUY KHANG |
+| Nội dung | Ung ho tac gia |
 
-Hai sheet này được tạo tự động nếu chưa có.
-
-### Cài đặt từng bước
-
-1. **Tạo Google Sheet** mới (hoặc dùng Sheet có sẵn).
-2. Trong Sheet: **Tiện ích mở rộng → Apps Script**.
-3. Xoá code mặc định, dán toàn bộ nội dung file `apps-script/Code.gs` vào, rồi sửa dòng đầu:
-   ```js
-   const SPREADSHEET_ID = "";   // để trống vì script đang gắn với chính Sheet này
-   ```
-   (Nếu tạo script độc lập ở script.google.com thì điền ID của Sheet — chuỗi nằm giữa `/d/` và `/edit` trong URL của Sheet.)
-4. Bấm **Lưu** (biểu tượng đĩa mềm).
-5. Bấm **Triển khai (Deploy) → Tùy chọn triển khai mới (New deployment)**:
-   - Biểu tượng bánh răng → chọn loại **Ứng dụng web (Web app)**.
-   - *Thực thi dưới dạng (Execute as)*: **Tôi (Me)**.
-   - *Người có quyền truy cập (Who has access)*: **Bất kỳ ai (Anyone)**.
-   - Bấm **Triển khai**, cấp quyền truy cập cho tài khoản Google khi được hỏi (chọn *Advanced → Go to … (unsafe)* nếu Google cảnh báo — đây là script của chính bạn).
-6. Sao chép **URL ứng dụng web** (dạng `https://script.google.com/macros/s/.../exec`).
-7. Mở `html/dashboard.js`, dán URL vào:
-   ```js
-   const SCRIPT_URL = "https://script.google.com/macros/s/XXXXXXXX/exec";
-   ```
-8. Tải lại Dashboard, bấm **Đồng bộ Google Sheet**. Thông báo xanh *“Đã đồng bộ lên Google Sheets: … người tham dự, … người trúng”* là thành công.
-
-> 🔁 **Mỗi khi sửa `Code.gs`** phải vào **Triển khai → Quản lý các bản triển khai → ✏️ Chỉnh sửa → Phiên bản: Phiên bản mới → Triển khai** thì thay đổi mới có hiệu lực (URL giữ nguyên).
->
-> ✅ Kiểm tra nhanh: mở URL `/exec` trên trình duyệt, thấy `{"success":true,"message":"Lucky Draw API is running"}` là script đang chạy.
-
-Không dùng tính năng này? Để `SCRIPT_URL = ""` — nút đồng bộ sẽ báo *“Chưa cấu hình”*, mọi chức năng khác vẫn chạy bình thường.
-
-> 📨 `Code.gs` vẫn giữ luồng cũ **gửi email mã giảm giá** (khi gửi lên `fullname`, `email`, `discountPercentage` mà không có `action`), ghi vào sheet `DSTT`. Nếu không dùng có thể bỏ qua.
-
----
-
-## 8. Tuỳ biến giao diện & thông số
-
-### Thông số vòng quay – `html/script.js`, đối tượng `CONFIG` ở đầu file
-
-| Thông số | Mặc định | Ý nghĩa |
-|---|---|---|
-| `TIMING.SPIN_DURATION` | `20000` | Thời gian quay (ms) |
-| `TIMING.FADE_OUT_START` | `18000` | Thời điểm bắt đầu giảm âm lượng tiếng quay — nên = `SPIN_DURATION − FADE_OUT_DURATION` |
-| `TIMING.FADE_OUT_DURATION` | `2000` | Thời gian giảm âm lượng (ms) |
-| `TIMING.MODAL_DELAY` | `2000` | Chờ bao lâu sau khi dừng mới hiện màn hình chúc mừng (ms) |
-| `TIMING.EXTRA_SPINS` | `3` | Số vòng quay tối thiểu |
-| `TIMING.EASING` | `cubic-bezier(...)` | Kiểu chuyển động (nhanh dần rồi chậm dần) |
-| `WHEEL.COLORS.LIGHT` / `DARK` | `#f3ffe1` / `#246d4b` | Hai màu xen kẽ của các ô |
-| `WHEEL.TEXT.SIZE` | `15` | Cỡ chữ tên trên vòng quay |
-| `WHEEL.TEXT.MAX_LENGTH` / `TRUNCATE_LENGTH` | `12` / `10` | Tên dài hơn `MAX_LENGTH` ký tự sẽ bị cắt còn `TRUNCATE_LENGTH` ký tự + `...` |
-| `AUDIO.SPIN_VOLUME` / `VICTORY_VOLUME` | `0.7` / `0.8` | Âm lượng (0 → 1) |
-
-Ví dụ muốn quay nhanh hơn (10 giây):
-
-```js
-SPIN_DURATION: 10000,
-FADE_OUT_START: 8000,
-```
-
-> 💡 Danh sách đông (trên ~80 người) thì chữ sẽ chồng nhau — giảm `WHEEL.TEXT.SIZE` hoặc `TRUNCATE_LENGTH`.
-
-### Hình ảnh, âm thanh, chữ
-
-Thay file nhưng **giữ nguyên tên file** là xong:
-
-| Muốn đổi | File |
-|---|---|
-| Khung/viền vòng quay | `html/images/wheel.png` |
-| Nút quay ở giữa | `html/images/button-wheel.png` |
-| Ảnh nền | `html/images/bg-2.png` (khai báo trong `style.css` và `dashboard.css`) |
-| Ảnh tiêu đề | `html/images/main-text.png` (khai báo trong `style.css`) |
-| Con trỏ chuột | `html/images/cursor35.png`, `pointer50.png` |
-| Hiệu ứng sao / pháo giấy | `html/images/stars.js`, `confetti.js` — xem hướng dẫn bên dưới |
-| Âm thanh quay / chiến thắng | `html/sound/am-thanh-vong-quay.mp3`, `am-thanh-chien-thang.mp3` |
-| Tiêu đề tab trình duyệt | thẻ `<title>` trong `index.html`, `dashboard.html` |
-| Câu “Chúc mừng bạn đã trúng thưởng” | trong `index.html` **và** trong `script.js` (đoạn reset modal, tìm chuỗi `Chúc mừng`) |
-| Chữ “EZ” ở tâm vòng quay | hàm `drawWheel()` trong `script.js` |
-
-Sau khi thay file, bấm **Ctrl + F5** để trình duyệt tải lại bản mới.
-
-**Đổi hiệu ứng sao / pháo giấy:** hiệu ứng được lưu dưới dạng `.js` (thay vì `.json`) để chạy được cả khi mở trực tiếp file. Cách thay:
-
-1. Tải hiệu ứng mới ở [lottiefiles.com](https://lottiefiles.com) dạng **Lottie JSON**.
-2. Mở `html/images/confetti.js` (hoặc `stars.js`) bằng trình soạn thảo, giữ nguyên 3 dòng đầu, xoá toàn bộ phần sau dấu `=` ở dòng `window.LOTTIE_DATA.confetti = ...`.
-3. Dán nội dung file `.json` vừa tải vào sau dấu `=`, thêm dấu `;` ở cuối, lưu lại.
-
----
-
-## 9. Dữ liệu được lưu ở đâu?
-
-Danh sách được lưu trong **`localStorage` của trình duyệt** với 2 khoá:
-
-- `luckydraw_participants` – danh sách người tham dự (`id`, `name`, `createdDate`, `status`: `active` / `inactive`)
-- `luckydraw_winners` – danh sách người trúng (`id`, `name`, `winTime`)
-
-Điều này có nghĩa là:
-
-- ✅ Tắt trình duyệt / khởi động lại máy **không mất** dữ liệu.
-- ⚠️ Dữ liệu **chỉ nằm trên đúng máy + đúng trình duyệt + đúng tên miền** đã nhập. Nhập trên laptop thì phải quay trên laptop đó; đổi từ `localhost` sang tên miền thật là danh sách trống.
-- ⚠️ Chế độ ẩn danh, hoặc xoá dữ liệu duyệt web (*Cookies and site data*) sẽ **mất** danh sách.
-- Muốn sao lưu: dùng [đồng bộ Google Sheets](#7-đồng-bộ-google-sheets-tuỳ-chọn), hoặc giữ lại file CSV gốc để import lại.
-
-Reset toàn bộ dữ liệu: trong Dashboard bấm **Xóa tất cả** ở cả 2 khung; hoặc mở DevTools (F12) → tab *Console* và chạy:
-
-```js
-localStorage.removeItem("luckydraw_participants");
-localStorage.removeItem("luckydraw_winners");
-```
-
----
-
-## 10. Checklist trước ngày sự kiện
-
-- [ ] Dùng **đúng máy và đúng trình duyệt** sẽ chiếu trong sự kiện để nhập danh sách.
-- [ ] Import danh sách, kiểm tra số lượng và tên có dấu hiển thị đúng.
-- [ ] Quay thử vài lượt → vào Dashboard **Xóa tất cả → Chuyển tất cả về danh sách tham dự** để reset.
-- [ ] Thử âm thanh qua loa hội trường.
-- [ ] Bật **F11** (toàn màn hình), tắt thông báo hệ điều hành, tắt chế độ ngủ của máy.
-- [ ] (Tuỳ chọn) Thử nút **Đồng bộ Google Sheet**.
-
----
-
-## 11. Xử lý sự cố thường gặp
-
-| Hiện tượng | Nguyên nhân & cách xử lý |
-|---|---|
-| Vòng quay hiện “Chưa có người tham dự” dù đã nhập | Nhập ở trình duyệt/tên miền khác (xem [mục 9](#9-dữ-liệu-được-lưu-ở-đâu)). Nhập lại trên đúng trình duyệt đang chiếu. |
-| Mở trực tiếp file: Dashboard và vòng quay không thấy dữ liệu của nhau | Đang dùng Firefox. Dùng Chrome/Edge, hoặc chạy bằng `start-windows.bat` / `start.sh` ([mục 3](#3-chạy-trên-máy-không-cần-docker)). |
-| `start-windows.bat` mở rồi tắt ngay / báo lỗi cổng | Cổng 8080 đang bị chương trình khác dùng. Sửa `$Port` trong `start-server.ps1`. |
-| Không có tiếng | Trình duyệt chặn tự phát âm thanh — bấm vào trang một lần trước khi quay; kiểm tra tab có bị tắt tiếng không. |
-| Import CSV ra chữ lỗi (`Nguy?n`, `Nguyá»…n`) | File không phải UTF-8. Lưu lại bằng **CSV UTF-8** ([mục 6](#6-import-danh-sách-từ-file-csv--excel)). |
-| Import CSV báo “0 người được thêm, N trùng lặp” | Các tên đã có sẵn trong danh sách (kể cả người đã trúng). |
-| Đồng bộ báo “Đồng bộ thất bại: Thiếu thông tin bắt buộc” / “Apps Script chưa hỗ trợ action sync” | Web App đang chạy code cũ. Dán `Code.gs` mới và **triển khai phiên bản mới** ([mục 7](#7-đồng-bộ-google-sheets-tuỳ-chọn)). |
-| Đồng bộ báo “Không thể đồng bộ…” | Sai `SCRIPT_URL`, Web App chưa để quyền **Anyone**, hoặc máy không có Internet. |
-| Sửa file rồi mà giao diện không đổi | Trình duyệt đang dùng bản cache — bấm **Ctrl + F5**. |
-| Tên dài bị cắt `...` trên vòng quay | Bình thường; tên đầy đủ vẫn hiện ở màn hình chúc mừng. Có thể tăng `WHEEL.TEXT.MAX_LENGTH` ([mục 8](#8-tuỳ-biến-giao-diện--thông-số)). |
-
----
-
-## Thư viện sử dụng
-
-- [jQuery 3.6](https://jquery.com/) · [Bootstrap 5](https://getbootstrap.com/) · [Bootstrap Icons](https://icons.getbootstrap.com/)
-- [GSAP 3.14 + SplitText](https://gsap.com/) (miễn phí theo [GSAP Standard License](https://gsap.com/standard-license))
-- [Lottie-web](https://github.com/airbnb/lottie-web)
-- Font: Oswald, Anton (Google Fonts, SIL Open Font License)
+Cảm ơn bạn! ☕
