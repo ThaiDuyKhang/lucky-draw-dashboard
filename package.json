@@ -1,0 +1,12 @@
+{
+  "name": "lucky-draw-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Vòng quay may mắn + Dashboard quản lý người tham dự",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=14"
+  }
+}
