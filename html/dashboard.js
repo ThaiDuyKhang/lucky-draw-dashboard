@@ -118,10 +118,10 @@ $(function () {
         <tr data-id="${esc(p.id)}">
           <td class="text-muted" style="width:40px">${i + 1}</td>
           <td><div class="participant-name">${esc(p.name)}</div>
-              ${p.email ? `<div class="small text-muted">${esc(p.email)}</div>` : `<div class="small text-warning-emphasis"><i class="bi bi-envelope-slash"></i> chưa có email</div>`}</td>
+              ${p.email ? `<div class="small text-muted">${esc(p.email)}</div>` : `<div class="small text-warning-emphasis"><i class="li icon-mail-x"></i> chưa có email</div>`}</td>
           <td class="text-end text-nowrap" style="width:90px">
-            <button class="btn btn-sm btn-link text-dark p-1 edit-participant" title="Sửa"><i class="bi bi-pencil"></i></button>
-            <button class="btn btn-sm btn-link text-danger p-1 delete-participant" title="Xoá"><i class="bi bi-trash"></i></button>
+            <button class="btn btn-sm btn-link text-dark p-1 edit-participant" title="Sửa"><i class="li icon-pencil"></i></button>
+            <button class="btn btn-sm btn-link text-danger p-1 delete-participant" title="Xoá"><i class="li icon-trash-2"></i></button>
           </td>
         </tr>`
         )
@@ -268,12 +268,12 @@ $(function () {
   };
 
   function emailBadge(w) {
-    if (!w.email) return '<span class="badge text-bg-light border"><i class="bi bi-envelope-slash"></i> Chưa có email</span>';
+    if (!w.email) return '<span class="badge text-bg-light border"><i class="li icon-mail-x"></i> Chưa có email</span>';
     const last = w.emails[w.emails.length - 1];
-    if (!last) return '<span class="badge text-bg-light border"><i class="bi bi-envelope"></i> Chưa gửi</span>';
+    if (!last) return '<span class="badge text-bg-light border"><i class="li icon-mail"></i> Chưa gửi</span>';
     const label = last.type === "cancel" ? "thư xin lỗi" : "thông báo trúng";
-    if (last.ok) return `<span class="badge text-bg-info"><i class="bi bi-envelope-check"></i> Đã gửi ${label} ${formatTime(last.at)}</span>`;
-    return `<span class="badge text-bg-danger" title="${esc(last.error)}"><i class="bi bi-envelope-exclamation"></i> Gửi ${label} lỗi</span>`;
+    if (last.ok) return `<span class="badge text-bg-info"><i class="li icon-mail-check"></i> Đã gửi ${label} ${formatTime(last.at)}</span>`;
+    return `<span class="badge text-bg-danger" title="${esc(last.error)}"><i class="li icon-mail-warning"></i> Gửi ${label} lỗi</span>`;
   }
 
   function renderWinners() {
@@ -308,36 +308,36 @@ $(function () {
               <div class="d-flex flex-wrap align-items-center gap-2">
                 <strong class="winner-name">${esc(w.name)}</strong>
                 ${STATUS[w.status]}
-                ${hidden ? '<span class="badge text-bg-dark"><i class="bi bi-eye-slash"></i> Đang quay</span>' : ""}
+                ${hidden ? '<span class="badge text-bg-dark"><i class="li icon-eye-off"></i> Đang quay</span>' : ""}
               </div>
               <div class="small text-muted">${w.email ? esc(w.email) : "—"} · ${formatTime(w.wonAt)}</div>
               <div class="small mt-1">
-                ${prize ? `<i class="bi bi-gift"></i> <strong>${esc(prize.name)}</strong>` : '<span class="text-muted">Không gắn giải</span>'}
+                ${prize ? `<i class="li icon-gift"></i> <strong>${esc(prize.name)}</strong>` : '<span class="text-muted">Không gắn giải</span>'}
                 ${w.code ? ` · Mã: <code class="user-select-all">${esc(w.code)}</code>` : ""}
               </div>
               <div class="mt-1">${emailBadge(w)}</div>
             </div>
           </div>
           <div class="winner-actions">
-            ${w.status === "pending" ? `<button class="btn btn-sm btn-success w-confirm"><i class="bi bi-check2"></i> Xác nhận${state.settings.autoEmail && w.email ? " &amp; gửi mail" : ""}</button>` : ""}
+            ${w.status === "pending" ? `<button class="btn btn-sm btn-success w-confirm"><i class="li icon-check"></i> Xác nhận${state.settings.autoEmail && w.email ? " &amp; gửi mail" : ""}</button>` : ""}
             <div class="btn-group btn-group-sm">
               <button class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" ${w.email ? "" : "disabled"}>
-                <i class="bi bi-envelope"></i> Gửi email
+                <i class="li icon-mail"></i> Gửi email
               </button>
               <ul class="dropdown-menu">
                 <li><a class="dropdown-item w-send" data-type="win" href="#" ${w.status === "cancelled" ? 'aria-disabled="true"' : ""}>🎉 Thông báo trúng thưởng</a></li>
                 <li><a class="dropdown-item w-send" data-type="cancel" href="#">🙏 Thông báo huỷ và xin lỗi</a></li>
                 <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item w-preview" data-type="win" href="#"><i class="bi bi-eye"></i> Xem trước email trúng</a></li>
-                <li><a class="dropdown-item w-preview" data-type="cancel" href="#"><i class="bi bi-eye"></i> Xem trước email xin lỗi</a></li>
+                <li><a class="dropdown-item w-preview" data-type="win" href="#"><i class="li icon-eye"></i> Xem trước email trúng</a></li>
+                <li><a class="dropdown-item w-preview" data-type="cancel" href="#"><i class="li icon-eye"></i> Xem trước email xin lỗi</a></li>
               </ul>
             </div>
             <div class="btn-group btn-group-sm">
-              <button class="btn btn-outline-dark dropdown-toggle" data-bs-toggle="dropdown" aria-label="Thao tác khác"><i class="bi bi-three-dots"></i></button>
+              <button class="btn btn-outline-dark dropdown-toggle" data-bs-toggle="dropdown" aria-label="Thao tác khác"><i class="li icon-ellipsis"></i></button>
               <ul class="dropdown-menu dropdown-menu-end">
-                ${w.status !== "cancelled" ? '<li><a class="dropdown-item w-cancel" href="#"><i class="bi bi-x-circle"></i> Huỷ kết quả (không gửi mail)</a></li>' : ""}
-                <li><a class="dropdown-item w-restore" href="#"><i class="bi bi-arrow-counterclockwise"></i> Trả về danh sách tham dự</a></li>
-                <li><a class="dropdown-item text-danger w-delete" href="#"><i class="bi bi-trash"></i> Xoá hẳn</a></li>
+                ${w.status !== "cancelled" ? '<li><a class="dropdown-item w-cancel" href="#"><i class="li icon-circle-x"></i> Huỷ kết quả (không gửi mail)</a></li>' : ""}
+                <li><a class="dropdown-item w-restore" href="#"><i class="li icon-rotate-ccw"></i> Trả về danh sách tham dự</a></li>
+                <li><a class="dropdown-item text-danger w-delete" href="#"><i class="li icon-trash-2"></i> Xoá hẳn</a></li>
               </ul>
             </div>
           </div>
@@ -485,8 +485,8 @@ $(function () {
           const current = p.id === state.currentPrizeId;
           const left = p.remaining === null ? "Không giới hạn" : `Còn <strong>${p.remaining}</strong>/${p.quantity}`;
           const typeLabel = p.type === "code"
-            ? `<span class="badge text-bg-info"><i class="bi bi-ticket-perforated"></i> Mã giảm giá${p.discountText ? " " + esc(p.discountText) : ""}</span>`
-            : '<span class="badge text-bg-light border"><i class="bi bi-gift"></i> Hiện vật</span>';
+            ? `<span class="badge text-bg-info"><i class="li icon-ticket"></i> Mã giảm giá${p.discountText ? " " + esc(p.discountText) : ""}</span>`
+            : '<span class="badge text-bg-light border"><i class="li icon-gift"></i> Hiện vật</span>';
           const codeInfo = p.type === "code"
             ? `<div class="small text-muted">${p.codeMode === "fixed" ? `Mã chung: <code>${esc(p.codeFixed)}</code>` : `Mã riêng: <code>${esc(p.codePrefix)}${"X".repeat(p.codeLength)}</code>`}</div>`
             : "";
@@ -494,7 +494,7 @@ $(function () {
           <div class="col-md-6 col-xl-4">
             <div class="prize-card-admin ${current ? "current" : ""}" data-id="${esc(p.id)}">
               <div class="d-flex gap-3">
-                <div class="prize-thumb">${p.imageId ? `<img src="${Api.imageUrl(p.imageId)}" alt="">` : '<i class="bi bi-gift"></i>'}</div>
+                <div class="prize-thumb">${p.imageId ? `<img src="${Api.imageUrl(p.imageId)}" alt="">` : '<i class="li icon-gift"></i>'}</div>
                 <div class="flex-grow-1 min-w-0">
                   <div class="fw-bold">${esc(p.name)}</div>
                   <div class="small">${left}</div>
@@ -503,11 +503,11 @@ $(function () {
                 </div>
               </div>
               <div class="d-flex gap-1 mt-3 flex-wrap">
-                ${current ? '<span class="badge text-bg-success align-self-center me-auto"><i class="bi bi-bullseye"></i> Đang quay</span>' : '<button class="btn btn-sm btn-outline-success me-auto p-set-current">Quay giải này</button>'}
-                <button class="btn btn-sm btn-light p-move" data-dir="up" ${i === 0 ? "disabled" : ""} title="Lên"><i class="bi bi-arrow-up"></i></button>
-                <button class="btn btn-sm btn-light p-move" data-dir="down" ${i === state.prizes.length - 1 ? "disabled" : ""} title="Xuống"><i class="bi bi-arrow-down"></i></button>
-                <button class="btn btn-sm btn-light p-edit" title="Sửa"><i class="bi bi-pencil"></i></button>
-                <button class="btn btn-sm btn-light text-danger p-delete" title="Xoá"><i class="bi bi-trash"></i></button>
+                ${current ? '<span class="badge text-bg-success align-self-center me-auto"><i class="li icon-target"></i> Đang quay</span>' : '<button class="btn btn-sm btn-outline-success me-auto p-set-current">Quay giải này</button>'}
+                <button class="btn btn-sm btn-light p-move" data-dir="up" ${i === 0 ? "disabled" : ""} title="Lên"><i class="li icon-arrow-up"></i></button>
+                <button class="btn btn-sm btn-light p-move" data-dir="down" ${i === state.prizes.length - 1 ? "disabled" : ""} title="Xuống"><i class="li icon-arrow-down"></i></button>
+                <button class="btn btn-sm btn-light p-edit" title="Sửa"><i class="li icon-pencil"></i></button>
+                <button class="btn btn-sm btn-light text-danger p-delete" title="Xoá"><i class="li icon-trash-2"></i></button>
               </div>
             </div>
           </div>`;
@@ -653,13 +653,13 @@ $(function () {
   }
 
   $("#copy-apps-script").on("click", function () {
-    copyText(appsScriptCode(), $(this), '<i class="bi bi-clipboard"></i> Sao chép code');
+    copyText(appsScriptCode(), $(this), '<i class="li icon-clipboard"></i> Sao chép code');
   });
 
   function copyText(text, btn, originalHtml) {
     const done = () => {
       if (btn) {
-        btn.html('<i class="bi bi-check2"></i> Đã sao chép');
+        btn.html('<i class="li icon-check"></i> Đã sao chép');
         setTimeout(() => btn.html(originalHtml), 2000);
       } else showToast("Đã sao chép", "success");
     };
@@ -782,8 +782,8 @@ $(function () {
             <div class="small text-muted mb-2 flex-grow-1"></div>
             <input type="file" accept="image/*" class="d-none">
             <div class="d-flex gap-2">
-              <button type="button" class="btn btn-sm btn-return flex-grow-1 theme-upload"><i class="bi bi-upload"></i> Chọn ảnh</button>
-              <button type="button" class="btn btn-sm btn-outline-dark theme-reset-image" title="Dùng ảnh mặc định"><i class="bi bi-arrow-counterclockwise"></i></button>
+              <button type="button" class="btn btn-sm btn-return flex-grow-1 theme-upload"><i class="li icon-upload"></i> Chọn ảnh</button>
+              <button type="button" class="btn btn-sm btn-outline-dark theme-reset-image" title="Dùng ảnh mặc định"><i class="li icon-rotate-ccw"></i></button>
             </div>
           </div>
         </div>`);

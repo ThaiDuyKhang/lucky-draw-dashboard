@@ -590,7 +590,7 @@ body {
     object-fit: contain;
 }
 
-.prize-thumb .bi {
+.prize-thumb .li {
     font-size: 2rem;
     color: var(--color-green);
 }

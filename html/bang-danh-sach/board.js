@@ -56,7 +56,7 @@
       html += `
         <div class="prize-group">
           <div class="prize-group-header">
-            ${prize.imageId ? `<img src="${Api.imageUrl(prize.imageId)}" alt="">` : `<i class="bi bi-gift-fill"></i>`}
+            ${prize.imageId ? `<img src="${Api.imageUrl(prize.imageId)}" alt="">` : `<i class="li icon-gift"></i>`}
             <div class="prize-group-name">${esc(prize.name)}</div>
             ${left}
           </div>
@@ -68,7 +68,7 @@
     if (others.length) {
       html += `
         <div class="prize-group">
-          ${state.prizes.length ? `<div class="prize-group-header"><i class="bi bi-star-fill"></i><div class="prize-group-name">Giải khác</div></div>` : ""}
+          ${state.prizes.length ? `<div class="prize-group-header"><i class="li icon-star"></i><div class="prize-group-name">Giải khác</div></div>` : ""}
           <ol class="winner-list">${others.map(winnerItem).join("")}</ol>
         </div>`;
     }
