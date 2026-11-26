@@ -34,7 +34,6 @@
 
   function render() {
     Api.applyTheme(state.theme);
-    $("event-name").textContent = state.eventName || "";
     document.title = "Bảng danh sách - " + (state.eventName || "Vòng quay may mắn");
     renderWinners();
     renderParticipants();

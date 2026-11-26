@@ -633,7 +633,8 @@ h1.main-title {
     margin-left: auto;
 }
 
-.wheel-links a {
+.wheel-links a,
+.wheel-links button {
     background: rgba(255, 255, 255, 0.75);
     color: #246d4b;
     text-decoration: none;
@@ -645,7 +646,8 @@ h1.main-title {
     transition: opacity 0.2s;
 }
 
-.wheel-links a:hover {
+.wheel-links a:hover,
+.wheel-links button:hover {
     opacity: 1;
 }
 
@@ -689,4 +691,84 @@ html:not(.theme-ready) .wheel-image,
 html:not(.theme-ready) .spin-button-image,
 html:not(.theme-ready) .main-title {
     visibility: hidden;
+}
+
+.wheel-links button {
+    border: 0;
+    font-size: 1rem;
+    padding: 8px 16px;
+    opacity: 0.85;
+}
+
+/* Modal danh sách trúng thưởng trên màn hình vòng quay */
+.winners-modal .modal-header {
+    background: #246d4b;
+    color: #fff;
+}
+
+.winners-modal .btn-close {
+    filter: invert(1);
+}
+
+.winners-prize {
+    margin-bottom: 18px;
+}
+
+.winners-prize-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 8px;
+    margin-bottom: 10px;
+}
+
+.winners-prize-header img {
+    width: 52px;
+    height: 52px;
+    object-fit: contain;
+}
+
+.winners-prize-header .li {
+    font-size: 1.6rem;
+    color: #246d4b;
+}
+
+.winners-prize-name {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #246d4b;
+    flex: 1;
+}
+
+.winners-grid {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 8px;
+}
+
+.winners-grid li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #f6fbf8;
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.winners-grid .num {
+    background: #246d4b;
+    color: #fff;
+    border-radius: 50%;
+    min-width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
 }
