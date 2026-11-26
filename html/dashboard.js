@@ -401,7 +401,9 @@ $(document).ready(function () {
   }
 
   function clearAllParticipants() {
-    participants = [];
+    // Chỉ xoá những người đang hiển thị (chưa trúng); người đã trúng được giữ
+    // lại để còn "Chuyển về danh sách tham dự" từ danh sách trúng thưởng
+    participants = participants.filter((p) => p.status !== "active");
     saveDataToLocalStorage();
     renderParticipants();
     showToast("Đã xóa tất cả người tham dự", "info");
