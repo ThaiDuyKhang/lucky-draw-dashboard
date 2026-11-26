@@ -1,8 +1,84 @@
-// Hàm GET để trả về giao diện
+/**
+ * Google Apps Script backend cho Lucky Draw Dashboard.
+ *
+ * - action "sync": nhận danh sách người tham dự + người trúng thưởng từ
+ *   Dashboard và ghi đè vào 2 sheet (xem SHEET_PARTICIPANTS / SHEET_WINNERS).
+ * - Không có action: luồng cũ gửi email mã giảm giá (fullname, email,
+ *   discountPercentage) -> ghi vào sheet "DSTT".
+ *
+ * Xem README.md, mục "Đồng bộ Google Sheets", để biết cách triển khai.
+ */
+
+// ID của Google Sheet (lấy trong URL: /spreadsheets/d/<ID>/edit).
+// Để trống "" nếu script được tạo từ menu Tiện ích mở rộng > Apps Script
+// của chính Sheet đó (script gắn với Sheet).
+const SPREADSHEET_ID = "1lHI2kIc5l2-SECJws20RogL1Fv983CE6Fwy2Bn3GX58";
+const SHEET_PARTICIPANTS = "Nguoi tham du";
+const SHEET_WINNERS = "Trung thuong";
+const SHEET_DISCOUNT = "DSTT";
+
+function getSpreadsheet() {
+  return SPREADSHEET_ID
+    ? SpreadsheetApp.openById(SPREADSHEET_ID)
+    : SpreadsheetApp.getActiveSpreadsheet();
+}
+
+function getOrCreateSheet(ss, name) {
+  return ss.getSheetByName(name) || ss.insertSheet(name);
+}
+
+// Ghi đè toàn bộ sheet bằng header + rows
+function writeTable(sheet, header, rows) {
+  sheet.clearContents();
+  const values = [header].concat(rows);
+  sheet.getRange(1, 1, values.length, header.length).setValues(values);
+  sheet.getRange(1, 1, 1, header.length).setFontWeight("bold");
+  sheet.setFrozenRows(1);
+}
+
+function handleSync(data) {
+  const participants = Array.isArray(data.participants) ? data.participants : [];
+  const winners = Array.isArray(data.winners) ? data.winners : [];
+  const ss = getSpreadsheet();
+
+  const statusLabel = (s) => (s === "active" ? "Đang tham dự" : "Đã trúng");
+  writeTable(
+    getOrCreateSheet(ss, SHEET_PARTICIPANTS),
+    ["STT", "ID", "Họ tên", "Trạng thái", "Ngày thêm"],
+    participants.map((p, i) => [
+      i + 1,
+      String(p.id),
+      p.name,
+      statusLabel(p.status),
+      p.createdDate ? new Date(p.createdDate) : "",
+    ])
+  );
+
+  writeTable(
+    getOrCreateSheet(ss, SHEET_WINNERS),
+    ["Lượt", "ID", "Họ tên", "Thời gian trúng"],
+    winners.map((w, i) => [
+      i + 1,
+      String(w.id),
+      w.name,
+      w.winTime ? new Date(w.winTime) : "",
+    ])
+  );
+
+  return {
+    success: true,
+    message: "Đã đồng bộ",
+    participants: participants.length,
+    winners: winners.length,
+    timestamp: new Date().toISOString(),
+  };
+}
+
+// Kiểm tra nhanh web app còn hoạt động (mở URL /exec trên trình duyệt)
 function doGet() {
-  return HtmlService.createHtmlOutputFromFile("index")
-    .setTitle("Vòng Quay May Mắn")
-    .addMetaTag("viewport", "width=device-width, initial-scale=1");
+  return ContentService.createTextOutput(
+    JSON.stringify({ success: true, message: "Lucky Draw API is running" })
+  ).setMimeType(ContentService.MimeType.JSON);
 }
 
 // Tạo mã giảm giá unique
@@ -21,6 +97,13 @@ function sendDiscountEmail(email, fullname, discountCode, discountPercentage) {
     if (!email || !fullname || !discountCode || !discountPercentage) {
       return false;
     }
+
+    // Chống chèn HTML vào email từ tên người dùng nhập
+    fullname = String(fullname)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
 
     // Tạo chủ đề email
     const subject = "🎁 Mã giảm giá từ Vòng quay may mắn EZtech ";
@@ -58,7 +141,7 @@ function sendDiscountEmail(email, fullname, discountCode, discountPercentage) {
             </ol>
         </div>
         <div style="text-align: center; padding: 20px 0; border-top: 1px solid #eee; margin-top: 30px;">
-          <p style="margin: 0; font-size: 12px; color: #888;">Email này được gửi tự động. Vui lòng khong trả lời thư này</p>
+          <p style="margin: 0; font-size: 12px; color: #888;">Email này được gửi tự động. Vui lòng không trả lời thư này</p>
           <p style="margin: 5px 0 0 0; font-size: 12px; color: #888;">&copy; ${new Date().getFullYear()} EZTECH. All rights reserved.</p>
         </div>
       </div>
@@ -104,6 +187,13 @@ function doPost(e) {
 
     console.log("Dữ liệu nhận được:", data);
 
+    // Đồng bộ từ Dashboard
+    if (data.action === "sync") {
+      return ContentService.createTextOutput(
+        JSON.stringify(handleSync(data))
+      ).setMimeType(ContentService.MimeType.JSON);
+    }
+
     // Validation
     if (!data.fullname || !data.email || !data.discountPercentage) {
       throw new Error("Thiếu thông tin bắt buộc");
@@ -114,10 +204,8 @@ function doPost(e) {
     console.log("Mã giảm giá được tạo:", discountCode);
 
     // Lưu dữ liệu vào Google Sheets
-    const ss = SpreadsheetApp.openById(
-      "1lHI2kIc5l2-SECJws20RogL1Fv983CE6Fwy2Bn3GX58"
-    );
-    const dataSheet = ss.getSheetByName("DSTT");
+    const ss = getSpreadsheet();
+    const dataSheet = getOrCreateSheet(ss, SHEET_DISCOUNT);
 
     const timestamp = new Date();
     const newRow = [
@@ -171,7 +259,7 @@ function doPost(e) {
     };
 
     // Xử lý JSONP callback cho lỗi
-    if (e.parameter && e.parameter.callback) {
+    if (e && e.parameter && e.parameter.callback) {
       return ContentService.createTextOutput(
         e.parameter.callback + "(" + JSON.stringify(errorResponse) + ")"
       ).setMimeType(ContentService.MimeType.JAVASCRIPT);
