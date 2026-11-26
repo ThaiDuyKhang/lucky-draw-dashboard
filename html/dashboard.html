@@ -99,6 +99,87 @@
             <button type="button" class="btn btn-outline-dark btn-sync" id="sync-data">
                 Đồng bộ Google Sheet
             </button>
+            <button type="button" class="btn btn-outline-dark" id="open-gsheet-setup">
+                <i class="bi bi-gear"></i> Cài đặt Google Sheet
+            </button>
+        </div>
+        <p class="text-center small mt-2 mb-0" id="gsheet-status-text"></p>
+
+        <!-- Google Sheet Setup Modal -->
+        <div class="modal fade" id="gsheetSetupModal" tabindex="-1" aria-labelledby="gsheetSetupModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="gsheetSetupModalLabel">
+                            <i class="bi bi-file-earmark-spreadsheet"></i> Cài đặt đồng bộ Google Sheet
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body gsheet-setup">
+                        <p class="text-muted small">
+                            Mỗi lần bấm <strong>Đồng bộ Google Sheet</strong>, danh sách hiện tại sẽ được ghi đè vào
+                            2 trang tính <code>Nguoi tham du</code> và <code>Trung thuong</code> (tự tạo nếu chưa có).
+                        </p>
+
+                        <h6 class="gsheet-step"><span>1</span> Tạo Google Sheet và mở Apps Script</h6>
+                        <ol class="small">
+                            <li>Tạo một Google Sheet mới tại
+                                <a href="https://sheets.new" target="_blank" rel="noopener">sheets.new</a>
+                                (hoặc mở Sheet có sẵn).</li>
+                            <li>Trên thanh menu chọn <strong>Tiện ích mở rộng → Apps Script</strong>
+                                (<em>Extensions → Apps Script</em>).</li>
+                        </ol>
+
+                        <h6 class="gsheet-step"><span>2</span> Dán code</h6>
+                        <ol class="small">
+                            <li>Xoá hết code mặc định trong file <code>Code.gs</code>.</li>
+                            <li>Bấm <strong>Sao chép code</strong> bên dưới rồi dán vào, bấm <strong>Lưu</strong>
+                                (biểu tượng đĩa mềm).</li>
+                        </ol>
+                        <div class="gsheet-code-wrapper mb-3">
+                            <button type="button" class="btn btn-sm btn-light gsheet-copy-btn" id="copy-apps-script">
+                                <i class="bi bi-clipboard"></i> Sao chép code
+                            </button>
+                            <pre class="gsheet-code mb-0"><code id="apps-script-code"></code></pre>
+                        </div>
+
+                        <h6 class="gsheet-step"><span>3</span> Triển khai thành Ứng dụng web</h6>
+                        <ol class="small">
+                            <li>Bấm <strong>Triển khai → Tùy chọn triển khai mới</strong>
+                                (<em>Deploy → New deployment</em>).</li>
+                            <li>Bấm biểu tượng bánh răng, chọn <strong>Ứng dụng web</strong> (<em>Web app</em>).</li>
+                            <li><em>Thực thi dưới dạng</em>: <strong>Tôi</strong> · <em>Người có quyền truy cập</em>:
+                                <strong>Bất kỳ ai</strong> (<em>Anyone</em>).</li>
+                            <li>Bấm <strong>Triển khai</strong> và cấp quyền cho tài khoản Google. Nếu Google cảnh báo,
+                                chọn <em>Advanced → Go to … (unsafe)</em> — đây là script của chính bạn.</li>
+                            <li>Sao chép <strong>URL ứng dụng web</strong> (kết thúc bằng <code>/exec</code>).</li>
+                        </ol>
+
+                        <h6 class="gsheet-step"><span>4</span> Dán URL vào đây</h6>
+                        <div class="input-group mb-2">
+                            <input type="text" class="form-control" id="gsheet-url-input" spellcheck="false"
+                                placeholder="https://script.google.com/macros/s/XXXXXXXX/exec">
+                            <button type="button" class="btn btn-return" id="save-gsheet-url">Lưu</button>
+                            <button type="button" class="btn btn-outline-dark" id="test-gsheet-url">Kiểm tra</button>
+                        </div>
+                        <div class="small mb-2" id="gsheet-url-message"></div>
+                        <div class="small text-muted">
+                            Đang dùng: <code id="gsheet-current-url">(chưa cấu hình)</code>
+                            <a href="javascript:void(0)" class="ms-2 link-danger d-none" id="clear-gsheet-url">Xoá URL
+                                đã lưu</a>
+                        </div>
+                        <p class="small text-muted mt-2 mb-0">
+                            <i class="bi bi-info-circle"></i> URL được lưu trong trình duyệt này. Dùng máy hoặc trình
+                            duyệt khác thì cần dán lại. Khi sửa code Apps Script, vào
+                            <em>Triển khai → Quản lý các bản triển khai → Chỉnh sửa → Phiên bản mới</em> để URL giữ nguyên.
+                        </p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-dark" data-bs-dismiss="modal">Đóng</button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Delete Winner Modal -->
@@ -208,6 +289,7 @@
     </div>
     <link rel="stylesheet" href="./libs/bootstrap-icons.css">
     <script src="./libs/bootstrap.bundle.min.js"></script>
+    <script src="./gsheet-setup.js"></script>
     <script src="./dashboard.js"></script>
 </body>
 

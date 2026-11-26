@@ -313,3 +313,55 @@ body {
         padding: 15px;
     }
 }
+/* Google Sheet setup modal */
+.gsheet-step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 1rem;
+    font-weight: 600;
+    color: var(--color-green);
+}
+
+.gsheet-step span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--color-green);
+    color: #fff;
+    font-size: 0.8rem;
+}
+
+.gsheet-code-wrapper {
+    position: relative;
+}
+
+.gsheet-code {
+    max-height: 260px;
+    overflow: auto;
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 14px;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    line-height: 1.45;
+}
+
+.gsheet-copy-btn {
+    position: absolute;
+    top: 8px;
+    right: 18px;
+    z-index: 1;
+}
+
+#gsheet-url-input {
+    font-family: Consolas, Monaco, monospace;
+    font-size: 0.85rem;
+}
+
+#gsheet-current-url {
+    word-break: break-all;
+}
