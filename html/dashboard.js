@@ -93,7 +93,7 @@ $(document).ready(function () {
     syncDataToServer();
   });
 
-  // CSV Import handlers
+  // Import Excel / CSV handlers
   $("#import-csv-btn").click(function () {
     $("#csv-file-input").click();
   });
@@ -101,7 +101,7 @@ $(document).ready(function () {
   $("#csv-file-input").change(function (e) {
     const file = e.target.files[0];
     if (file) {
-      importCSV(file);
+      importFile(file);
     }
     // Reset input so same file can be selected again
     $(this).val("");
@@ -301,83 +301,101 @@ $(document).ready(function () {
     ).hide();
   });
 
-  function importCSV(file) {
-    // Check file type
-    if (!file.name.toLowerCase().endsWith(".csv")) {
-      showToast("Vui lòng chọn file CSV", "danger");
+  // Import danh sách từ file Excel (.xlsx) hoặc CSV: lấy cột đầu tiên làm tên
+  function importFile(file) {
+    const fileName = file.name.toLowerCase();
+
+    if (fileName.endsWith(".xlsx")) {
+      if (typeof readXlsxFile !== "function") {
+        showToast("Không tải được thư viện đọc Excel. Hãy lưu file dạng CSV rồi import.", "danger");
+        return;
+      }
+      readXlsxFile(file)
+        .then((rows) => {
+          // Một số phiên bản trả về danh sách sheet -> lấy sheet đầu tiên
+          if (rows.length && rows[0] && Array.isArray(rows[0].data)) rows = rows[0].data;
+          addImportedNames(rows.map((row) => cellToText(row && row[0])));
+        })
+        .catch((error) => {
+          console.error("Excel import error:", error);
+          showToast("Không đọc được file Excel. Kiểm tra file có đúng định dạng .xlsx", "danger");
+        });
+      return;
+    }
+
+    if (fileName.endsWith(".xls")) {
+      showToast("File .xls (Excel 97-2003) chưa được hỗ trợ. Mở bằng Excel và lưu lại dạng .xlsx", "warning");
+      return;
+    }
+
+    if (!fileName.endsWith(".csv")) {
+      showToast("Vui lòng chọn file Excel (.xlsx) hoặc CSV (.csv)", "danger");
       return;
     }
 
     const reader = new FileReader();
-
     reader.onload = function (e) {
-      const content = e.target.result;
-      const lines = content.split(/\r?\n/);
-
-      let addedCount = 0;
-      let duplicateCount = 0;
-      let emptyCount = 0;
-
-      lines.forEach((line, lineIndex) => {
-        // Lấy cột đầu tiên (hỗ trợ file có nhiều cột, phân cách , hoặc ;)
-        let name = getFirstCsvColumn(line.replace(/^\uFEFF/, "")).trim();
-
-        // Skip empty lines
-        if (name === "") {
-          emptyCount++;
-          return;
-        }
-
-        // Bỏ qua dòng tiêu đề (Tên, Họ tên, Họ và tên, Name...)
-        if (lineIndex === 0 && HEADER_NAMES.includes(name.toLowerCase())) {
-          return;
-        }
-
-        // Check for duplicates (case-insensitive)
-        if (
-          participants.some((p) => p.name.toLowerCase() === name.toLowerCase())
-        ) {
-          duplicateCount++;
-          return;
-        }
-
-        // Add participant
-        const participant = {
-          id: generateId(),
-          name: name,
-          createdDate: new Date().toISOString(),
-          status: "active",
-        };
-
-        participants.push(participant);
-        addedCount++;
-      });
-
-      // Save and render
-      if (addedCount > 0) {
-        saveDataToLocalStorage();
-        renderParticipants();
-      }
-
-      // Show summary
-      let message = `Import hoàn tất: ${addedCount} người được thêm`;
-      if (duplicateCount > 0) {
-        message += `, ${duplicateCount} trùng lặp`;
-      }
-      const trailingEmpty = lines[lines.length - 1].trim() === "" ? 1 : 0;
-      if (emptyCount - trailingEmpty > 0) {
-        message += `, ${emptyCount - trailingEmpty} dòng trống`;
-      }
-
-      const toastType = addedCount > 0 ? "success" : "warning";
-      showToast(message, toastType);
+      const lines = e.target.result.split(/\r?\n/);
+      // Lấy cột đầu tiên (hỗ trợ file có nhiều cột, phân cách , ; hoặc tab)
+      addImportedNames(lines.map((line) => getFirstCsvColumn(line.replace(/^\uFEFF/, ""))));
     };
-
     reader.onerror = function () {
       showToast("Lỗi khi đọc file CSV", "danger");
     };
-
     reader.readAsText(file, "UTF-8");
+  }
+
+  function cellToText(cell) {
+    if (cell === null || cell === undefined) return "";
+    return String(cell);
+  }
+
+  function addImportedNames(values) {
+    let addedCount = 0;
+    let duplicateCount = 0;
+    let emptyCount = 0;
+
+    // Bỏ các dòng trống ở cuối file (không tính là "dòng trống")
+    let last = values.length;
+    while (last > 0 && String(values[last - 1]).trim() === "") last--;
+
+    values.slice(0, last).forEach((value, index) => {
+      const name = String(value).replace(/\s+/g, " ").trim();
+
+      if (name === "") {
+        emptyCount++;
+        return;
+      }
+
+      // Bỏ qua dòng tiêu đề (Tên, Họ tên, Họ và tên, Name...)
+      if (index === 0 && HEADER_NAMES.includes(name.toLowerCase())) {
+        return;
+      }
+
+      // Check for duplicates (case-insensitive)
+      if (participants.some((p) => p.name.toLowerCase() === name.toLowerCase())) {
+        duplicateCount++;
+        return;
+      }
+
+      participants.push({
+        id: generateId(),
+        name: name,
+        createdDate: new Date().toISOString(),
+        status: "active",
+      });
+      addedCount++;
+    });
+
+    if (addedCount > 0) {
+      saveDataToLocalStorage();
+      renderParticipants();
+    }
+
+    let message = `Import hoàn tất: ${addedCount} người được thêm`;
+    if (duplicateCount > 0) message += `, ${duplicateCount} trùng lặp`;
+    if (emptyCount > 0) message += `, ${emptyCount} dòng trống`;
+    showToast(message, addedCount > 0 ? "success" : "warning");
   }
 
   const HEADER_NAMES = ["tên", "ten", "họ tên", "họ và tên", "name", "full name", "fullname"];
