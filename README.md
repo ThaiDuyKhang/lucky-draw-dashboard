@@ -192,7 +192,21 @@ Muốn đổi cổng: sửa dòng `"8080:80"` trong `docker-compose.yml` (ví d�
 3. Bật **SSL** (Let's Encrypt) cho tên miền.
 4. Truy cập `https://ten-mien-cua-ban/` (vòng quay) và `https://ten-mien-cua-ban/dashboard.html`.
 
-### 4.3. Hosting tĩnh miễn phí (GitHub Pages, Netlify, Vercel, Cloudflare Pages)
+### 4.3. Cloudflare Workers
+
+Repo đã có sẵn `wrangler.jsonc` (phục vụ thư mục `html/`).
+
+1. Cloudflare Dashboard → **Workers & Pages → Create → Import a repository** → chọn repo này.
+2. Điền:
+   - **Project name**: `lucky-draw-dashboard` (phải trùng `"name"` trong `wrangler.jsonc`; muốn đặt tên khác thì sửa cả trong file).
+   - **Build command**: *để trống*.
+   - **Deploy command**: `npx wrangler deploy`.
+   - **Preview command**: `npx wrangler versions upload` (hoặc giữ mặc định).
+3. Bấm **Deploy**. Web chạy tại `https://lucky-draw-dashboard.<tài-khoản>.workers.dev`, mỗi lần push lên `main` sẽ tự deploy lại.
+
+Trang Dashboard mở bằng `/dashboard` (đường dẫn `/dashboard.html` cũng tự chuyển hướng về đó).
+
+### 4.4. Hosting tĩnh miễn phí (GitHub Pages, Netlify, Vercel, Cloudflare Pages)
 
 Chọn thư mục publish là `html`. Không cần lệnh build.
 
