@@ -75,6 +75,20 @@ export function renderEmail(type, winner, settings, origin) {
   return { subject, text, html };
 }
 
+// Đổi lỗi thường gặp của Google sang hướng dẫn tiếng Việt
+function friendlyError(message) {
+  if (/permission/i.test(message) && /send_mail|MailApp|gmail/i.test(message)) {
+    return "Apps Script chưa được cấp quyền gửi email. Mở Apps Script, chọn hàm capQuyen ở thanh công cụ → bấm Chạy → cho phép quyền; rồi Triển khai → Quản lý các bản triển khai → Chỉnh sửa → Phiên bản mới → Triển khai.";
+  }
+  if (/permission/i.test(message) && /spreadsheets/i.test(message)) {
+    return "Apps Script chưa được cấp quyền Google Sheet. Chạy hàm capQuyen trong Apps Script để cấp quyền, rồi triển khai phiên bản mới.";
+  }
+  if (/too many times|quota|Service invoked/i.test(message)) {
+    return "Đã hết hạn mức gửi email hôm nay của tài khoản Google (Gmail thường ~100 email/ngày). Thử lại vào ngày mai.";
+  }
+  return message;
+}
+
 // Gọi Web App của Apps Script (Apps Script trả về qua chuyển hướng 302)
 export async function callAppsScript(url, payload) {
   let res;
@@ -99,6 +113,6 @@ export async function callAppsScript(url, payload) {
     }
     return { ok: false, error: "Phản hồi không hợp lệ từ Apps Script (HTTP " + res.status + ")" };
   }
-  if (!data.success) return { ok: false, error: data.error || "Apps Script báo lỗi" };
+  if (!data.success) return { ok: false, error: friendlyError(data.error || "Apps Script báo lỗi") };
   return { ok: true, data };
 }

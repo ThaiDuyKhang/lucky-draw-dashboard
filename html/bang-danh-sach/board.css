@@ -140,7 +140,7 @@ h1.main-title {
     object-fit: contain;
 }
 
-.prize-group-header .bi {
+.prize-group-header .li {
     font-size: 1.8rem;
     color: var(--green);
 }

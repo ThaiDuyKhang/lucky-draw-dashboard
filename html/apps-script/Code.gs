@@ -15,6 +15,17 @@ const SPREADSHEET_ID = "";
 const SHEET_PARTICIPANTS = "Nguoi tham du";
 const SHEET_WINNERS = "Trung thuong";
 
+/**
+ * CHẠY HÀM NÀY 1 LẦN TRONG TRÌNH SOẠN THẢO để cấp quyền gửi email + Google Sheet:
+ * chọn "capQuyen" ở thanh công cụ -> bấm "Chạy" (Run) -> Xem xét quyền -> Cho phép.
+ * Sau đó: Triển khai -> Quản lý các bản triển khai -> Chỉnh sửa -> Phiên bản mới -> Triển khai.
+ */
+function capQuyen() {
+  const quota = MailApp.getRemainingDailyQuota();
+  getSpreadsheet();
+  Logger.log("Đã cấp quyền. Số email còn gửi được hôm nay: " + quota);
+}
+
 function jsonOutput(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(
     ContentService.MimeType.JSON
