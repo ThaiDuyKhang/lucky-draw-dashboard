@@ -17,6 +17,8 @@ body {
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
+    background-repeat: no-repeat;
+    min-height: 100vh;
     display: flex;
     flex-direction: column;
     color: #1d1d1d;
@@ -246,12 +248,42 @@ h1.main-title {
 }
 
 @media (max-width: 900px) {
+    body {
+        /* iOS không hỗ trợ tốt background-attachment: fixed */
+        background-attachment: scroll;
+    }
+
     .board-main {
         grid-template-columns: 1fr;
         padding: 12px;
+        gap: 16px;
     }
 
     .board-panel {
         max-height: 75vh;
+    }
+
+    h1.main-title {
+        height: 22vw;
+        min-height: 60px;
+    }
+
+    .board-panel-header {
+        padding: 12px 14px;
+        flex-wrap: wrap;
+    }
+
+    .board-search {
+        max-width: none;
+        flex-basis: 100%;
+    }
+
+    .board-panel-body {
+        padding: 12px 14px;
+    }
+
+    .winner-list,
+    .participant-grid {
+        grid-template-columns: 1fr;
     }
 }
