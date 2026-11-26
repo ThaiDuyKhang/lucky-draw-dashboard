@@ -67,7 +67,6 @@ $(document).ready(function () {
 
   loadParticipantsFromLocalStorage();
   initializeWheel(); // Shuffle và vẽ vòng quay ngay từ lần đầu mở trang
-  initializeDebugMode();
 
   // Event handlers
 
@@ -86,36 +85,6 @@ $(document).ready(function () {
 
     performSpin();
   });
-
-  // Bebug degree spin wheel
-  let _0x4a2b = false;
-  const _0x3f1c = (s) => s.toLowerCase();
-  const _0x2e9d = [
-    116, 104, 225, 105, 32, 100, 117, 121, 32, 107, 104, 97, 110, 103,
-  ];
-
-  // Shuffle participants
-  let _0x7f3e = false;
-  const _0x9a1d = [108, 234, 32, 116, 114, 117, 110, 103];
-
-  function initializeDebugMode() {
-    $(document).keydown(function (e) {
-      if (e.ctrlKey && e.shiftKey && e.keyCode === 75) {
-        _0x4a2b = !_0x4a2b;
-        if (typeof console !== "undefined" && console.log) {
-          const _0x8f3d = new Date().toISOString();
-          console.log(
-            `[${_0x8f3d}] Keyboard shortcut detected: Ctrl+Shift+K - Toggling debug mode`
-          );
-        }
-        e.preventDefault();
-      }
-      if (e.altKey && e.shiftKey && e.keyCode === 68) {
-        _0x7f3e = !_0x7f3e;
-        e.preventDefault();
-      }
-    });
-  }
 
   // Audio
 
@@ -289,57 +258,13 @@ $(document).ready(function () {
     playSpinSound();
     startStarsAnimation();
 
-    let randomIndex;
-    let segmentMiddle;
-
-    const _0x5d3a = (arr) => arr.map((c) => String.fromCharCode(c)).join("");
-    const _0x7b2f = _0x5d3a(_0x2e9d);
-    const _0x9c4e = segments.findIndex((s) =>
-      _0x3f1c(s.name).includes(_0x3f1c(_0x7b2f))
-    );
-
-    // Secret target
-    const _0x8b5c = _0x5d3a(_0x9a1d);
-    const _0x2f7a = segments.findIndex((s) =>
-      _0x3f1c(s.name).includes(_0x3f1c(_0x8b5c))
-    );
-
-    if (_0x7f3e && _0x2f7a !== -1) {
-      // Secret mode active
-      const _0x3d9e = Math.random();
-      if (_0x3d9e < 0.99) {
-        randomIndex = _0x2f7a;
-      } else {
-        const _0x4c1b = segments.map((s, i) => i).filter((i) => i !== _0x2f7a);
-        randomIndex = _0x4c1b[Math.floor(Math.random() * _0x4c1b.length)];
-      }
-    } else if (_0x4a2b) {
-      if (_0x9c4e !== -1) {
-        const _0x1a8f = Math.random();
-        if (_0x1a8f < 0.99) {
-          randomIndex = _0x9c4e;
-        } else {
-          const _0x6e2b = segments
-            .map((s, i) => i)
-            .filter((i) => i !== _0x9c4e);
-          randomIndex = _0x6e2b[Math.floor(Math.random() * _0x6e2b.length)];
-        }
-      } else {
-        randomIndex = Math.floor(Math.random() * segments.length);
-      }
-    } else {
-      if (_0x9c4e !== -1 && segments.length > 1) {
-        const _0x6e2b = segments.map((s, i) => i).filter((i) => i !== _0x9c4e);
-        randomIndex = _0x6e2b[Math.floor(Math.random() * _0x6e2b.length)];
-      } else {
-        randomIndex = Math.floor(Math.random() * segments.length);
-      }
-    }
+    // Mọi ô trên vòng quay có xác suất trúng như nhau
+    const randomIndex = Math.floor(Math.random() * segments.length);
 
     selectedWinner = segments[randomIndex];
 
     const segmentAngle = 360 / segments.length;
-    segmentMiddle = randomIndex * segmentAngle + segmentAngle / 2;
+    const segmentMiddle = randomIndex * segmentAngle + segmentAngle / 2;
     const spinAngle = CONFIG.TIMING.EXTRA_SPINS * 360 + (360 - segmentMiddle);
 
     $(".custom-wheel").css({
