@@ -85,12 +85,12 @@ $(function () {
 
   function render() {
     $("#nav-event-name").text(state.settings.eventName);
-    document.title = "Dashboard - " + state.settings.eventName;
     renderParticipants();
     renderWinners();
     renderPrizes();
     renderScriptStatus();
     renderThemeImages();
+    renderBranding();
     renderParty();
     if (!formsFilled) {
       fillSettingsForms();
@@ -921,6 +921,123 @@ $(function () {
     if (typed !== "XOA") return showToast("Chưa gõ XOA, đã huỷ thao tác", "warning");
     run("resetAllData", { confirm: "XOA" }, "Đã xoá toàn bộ người tham dự và người trúng thưởng");
   });
+
+  // ==================== THƯƠNG HIỆU ====================
+  const BRAND_IMAGES = {
+    faviconId: { label: "Favicon", hint: "Biểu tượng trên tab trình duyệt. Ảnh vuông, PNG, tối thiểu 64×64 (nên 256×256).", opts: { maxWidth: 256, maxHeight: 256, format: "image/png" }, fallback: "/images/favicon.ico" },
+    logoId: { label: "Logo", hint: "Hiện ở trang đăng nhập, Dashboard, bảng danh sách và Party. PNG nền trong suốt, khung ngang.", opts: { maxWidth: 800, maxHeight: 400 } },
+    shareImageId: { label: "Ảnh chia sẻ", hint: "Hiện khi gửi link qua Zalo / Facebook. Khuyên dùng 1200×630. Để trống sẽ dùng logo.", opts: { maxWidth: 1200, maxHeight: 1200, opaque: true } },
+  };
+  let brandingFilled = false;
+
+  (function buildBrandImages() {
+    Object.keys(BRAND_IMAGES).forEach((key) => {
+      const cfg = BRAND_IMAGES[key];
+      const card = $(`
+        <div class="col-md-4">
+          <div class="theme-image-card" data-brand="${key}">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="small fw-semibold"></span>
+              <span class="badge bg-success d-none">Đã đổi</span>
+            </div>
+            <div class="theme-image-preview"><img alt=""><span class="small text-muted no-image">Chưa có</span></div>
+            <div class="small text-muted mb-2 flex-grow-1 hint"></div>
+            <input type="file" accept="image/*" class="d-none">
+            <div class="d-flex gap-2">
+              <button type="button" class="btn btn-sm btn-return flex-grow-1 brand-upload"><i class="li icon-upload"></i> Chọn ảnh</button>
+              <button type="button" class="btn btn-sm btn-outline-dark brand-reset" title="Bỏ ảnh"><i class="li icon-rotate-ccw"></i></button>
+            </div>
+          </div>
+        </div>`);
+      card.find(".fw-semibold").text(cfg.label);
+      card.find(".hint").text(cfg.hint);
+      $("#brand-images").append(card);
+    });
+  })();
+
+  function renderBranding() {
+    const b = state.branding;
+    if (!brandingFilled) {
+      $("#brand-site-name").val(b.siteName);
+      $("#brand-description").val(b.description);
+      $("#brand-theme-color").val(b.themeColor);
+      brandingFilled = true;
+    }
+    Object.keys(BRAND_IMAGES).forEach((key) => {
+      const card = $(`.theme-image-card[data-brand="${key}"]`);
+      const src = b[key] ? Api.imageUrl(b[key]) : BRAND_IMAGES[key].fallback || "";
+      card.find("img").attr("src", src).toggle(!!src);
+      card.find(".no-image").toggle(!src);
+      card.find(".badge").toggleClass("d-none", !b[key]);
+      card.find(".brand-reset").prop("disabled", !b[key]);
+    });
+    renderBrandPreview();
+  }
+
+  function renderBrandPreview() {
+    const b = state.branding;
+    const name = $("#brand-site-name").val().trim() || b.siteName;
+    const desc = $("#brand-description").val().trim();
+    $("#brand-title-sample").text(name);
+    $("#brand-desc-count").text($("#brand-description").val().length);
+    $("#serp-host").text(location.host);
+    $("#serp-favicon").attr("src", b.faviconId ? Api.imageUrl(b.faviconId) : "/images/favicon.ico");
+    $("#serp-title").text(name);
+    $("#serp-desc").text(desc || "(chưa có mô tả)");
+    $("#share-host").text(location.host);
+    $("#share-title").text(name);
+    $("#share-desc").text(desc);
+    const shareId = b.shareImageId || b.logoId;
+    const img = $("#share-image");
+    if (shareId) img.css("background-image", `url('${Api.imageUrl(shareId)}')`).find("span").hide();
+    else img.css("background-image", "").find("span").show();
+  }
+
+  $("#brand-site-name, #brand-description").on("input", renderBrandPreview);
+
+  $("#branding-form").on("submit", function (e) {
+    e.preventDefault();
+    run(
+      "saveBranding",
+      { branding: { siteName: $("#brand-site-name").val(), description: $("#brand-description").val(), themeColor: $("#brand-theme-color").val() } },
+      "Đã lưu thương hiệu — tải lại các trang để thấy thay đổi"
+    );
+  });
+
+  $("#reset-branding").on("click", async function () {
+    const ok = await confirmDialog({
+      title: "Khôi phục thương hiệu mặc định",
+      html: "Đặt lại tên website, mô tả, màu và bỏ favicon, logo, ảnh chia sẻ đã tải lên?",
+      buttons: [{ value: true, label: "Khôi phục", cls: "btn-warning" }],
+    });
+    if (!ok) return;
+    brandingFilled = false;
+    run("resetBranding", {}, "Đã khôi phục thương hiệu mặc định");
+  });
+
+  $("#brand-images")
+    .on("click", ".brand-upload", function () {
+      $(this).closest(".theme-image-card").find("input[type=file]").val("").trigger("click");
+    })
+    .on("change", "input[type=file]", async function () {
+      const file = this.files && this.files[0];
+      if (!file) return;
+      const key = $(this).closest(".theme-image-card").data("brand");
+      loading(true);
+      try {
+        const blob = await Api.prepareImage(file, BRAND_IMAGES[key].opts);
+        const up = await Api.uploadImage(blob);
+        await run("saveBranding", { branding: { [key]: up.id } }, "Đã cập nhật " + BRAND_IMAGES[key].label.toLowerCase(), { quiet: true });
+      } catch (err) {
+        showToast(err.message, "danger");
+      } finally {
+        loading(false);
+      }
+    })
+    .on("click", ".brand-reset", function () {
+      const key = $(this).closest(".theme-image-card").data("brand");
+      run("saveBranding", { branding: { [key]: null } }, "Đã bỏ " + BRAND_IMAGES[key].label.toLowerCase());
+    });
 
   // ==================== CHẾ ĐỘ PARTY ====================
   let previewAudio = null;

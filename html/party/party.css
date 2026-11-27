@@ -432,3 +432,15 @@ body {
         max-width: 110px;
     }
 }
+
+.party-logo {
+    height: 1.1em;
+    max-width: 3em;
+    object-fit: contain;
+    vertical-align: -0.18em;
+    margin-right: 8px;
+}
+
+.party-logo[hidden] {
+    display: none;
+}

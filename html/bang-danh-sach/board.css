@@ -287,3 +287,15 @@ h1.main-title {
         grid-template-columns: 1fr;
     }
 }
+
+.board-logo {
+    display: block;
+    margin: 0 auto 6px;
+    max-height: 56px;
+    max-width: 220px;
+    object-fit: contain;
+}
+
+.board-logo[hidden] {
+    display: none;
+}
