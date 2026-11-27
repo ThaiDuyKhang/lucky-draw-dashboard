@@ -230,11 +230,22 @@ h1.main-title {
     aspect-ratio: 1;
 }
 
+/* Quầng sáng trắng: nằm yên phía sau, không xoay theo (tránh vẽ lại mỗi khung hình) */
+.ez-wheel-wrapper::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    box-shadow: 0 0 1.75rem .35rem rgba(255, 255, 255, .85);
+    pointer-events: none;
+}
+
 .custom-wheel {
     width: 100%;
     height: 100%;
     position: relative; /* xoay bằng GSAP trong script.js */
-    filter: drop-shadow(0 0 1.75rem rgb(255, 255, 255));
+    will-change: transform;
+    backface-visibility: hidden;
 }
 
 .wheel-image {
@@ -267,18 +278,18 @@ h1.main-title {
     transform: translate(-50%, -50%);
     z-index: 10;
     cursor: pointer;
-    transition: all 0.3s ease;
     max-width: 35vw;
     width: 100%;
     height: 100%;
 }
 
-.spin-button-wrapper:hover {
-    transform: translate(-50%, -50%) scale(1.1);
+/* Hiệu ứng rê/nhấn chỉ khi chưa quay; lúc quay nút đứng yên */
+.spin-button-wrapper:not(.spinning):hover .spin-button-image {
+    filter: brightness(1.06);
 }
 
-.spin-button-wrapper:active {
-    transform: translate(-50%, -50%) scale(0.95);
+.spin-button-wrapper.spinning {
+    pointer-events: none;
 }
 
 .spin-button-image {
@@ -900,5 +911,110 @@ html:not(.theme-ready) .main-title {
 
     .winners-modal .winner-list {
         grid-template-columns: 1fr;
+    }
+}
+
+/* =====================================================================
+   Material 3: thanh điều khiển & hộp thoại danh sách trúng thưởng
+   ===================================================================== */
+.prize-bar {
+    background: rgba(246, 251, 243, 0.96);
+    border-radius: 16px;
+    padding: 8px 12px 10px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 2px 6px 2px rgba(0, 0, 0, .15);
+    min-width: 0;
+}
+
+.prize-bar > div {
+    min-width: 0;
+    flex: 1;
+}
+
+.prize-bar-label {
+    font-size: .75rem;
+    font-weight: 500;
+    letter-spacing: .03em;
+    color: #2b6a46;
+    margin-bottom: 4px;
+}
+
+.prize-bar select {
+    width: 100%;
+    min-width: 0;
+    text-overflow: ellipsis;
+}
+
+.wheel-links button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 44px;
+    padding: 0 20px 0 16px;
+    border: 0;
+    border-radius: 100px;
+    background: #d2e8d5;
+    color: #0d1f13;
+    font-size: .9rem;
+    font-weight: 500;
+    white-space: nowrap;
+    opacity: 1;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 1px 3px 1px rgba(0, 0, 0, .15);
+    transition: box-shadow .2s, background-color .2s;
+}
+
+.wheel-links button:hover {
+    background: #c5dcc8;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 2px 6px 2px rgba(0, 0, 0, .15);
+}
+
+.wheel-links button .li {
+    font-size: 1.15rem;
+}
+
+/* Hộp thoại danh sách: thân liền khối với tiêu đề, không bo góc riêng */
+.winners-modal {
+    background: #fff !important;
+    border-radius: 28px !important;
+}
+
+.winners-modal .modal-body {
+    border-radius: 0;
+    background: transparent;
+}
+
+.winners-modal-header {
+    padding: 16px 16px 16px 24px;
+}
+
+@media (max-width: 576px) {
+    .prize-bar {
+        flex: 1;
+        max-width: none;
+    }
+
+    .wheel-links button {
+        width: 48px;
+        height: 48px;
+        padding: 0;
+        justify-content: center;
+    }
+
+    .wheel-links .btn-label {
+        display: none;
+    }
+
+    .winners-modal {
+        border-radius: 24px !important;
+    }
+}
+
+@media (max-width: 576px) {
+    .wheel-topbar {
+        align-items: center;
+    }
+
+    /* Chừa chỗ cho thanh chọn giải phía trên, không đè lên tiêu đề */
+    .container.mt-5 {
+        margin-top: 92px !important;
     }
 }

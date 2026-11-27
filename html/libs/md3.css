@@ -66,30 +66,34 @@ body {
     align-items: center;
     justify-content: center;
     gap: .45em;
-    position: relative;
-    overflow: hidden;
+    white-space: nowrap;
+    min-height: 40px;
+    line-height: 1.2;
     transition: box-shadow .2s var(--md-ease), background-color .2s var(--md-ease), color .2s, border-color .2s;
 }
 
-.btn::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: currentColor;
-    opacity: 0;
-    transition: opacity .15s;
-    pointer-events: none;
+/* State layer (hover / nhấn) theo M3 — không dùng position để không phá nút định vị tuyệt đối */
+.btn:hover {
+    background-image: linear-gradient(color-mix(in srgb, currentColor 8%, transparent) 0 0);
 }
 
-.btn:hover::after {
-    opacity: .08;
+.btn:active {
+    background-image: linear-gradient(color-mix(in srgb, currentColor 12%, transparent) 0 0);
 }
 
-.btn:active::after {
-    opacity: .12;
+.btn:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--md-primary) 40%, transparent);
+    outline-offset: 2px;
+    box-shadow: none;
+}
+
+.btn > .li {
+    font-size: 1.1em;
+    line-height: 1;
 }
 
 .btn-sm {
+    min-height: 32px;
     --bs-btn-padding-x: .9rem;
     --bs-btn-padding-y: .35rem;
     --bs-btn-font-size: .8125rem;
@@ -219,12 +223,14 @@ body {
 }
 
 .btn-group > .btn {
-    border-radius: 0;
+    border-radius: 0 !important;
+    margin-left: 0 !important;
 }
 
-.btn-group > .btn:first-child {
-    border-top-left-radius: 100px;
-    border-bottom-left-radius: 100px;
+.btn-group > .btn:first-child,
+.btn-group > .btn-check:first-child + .btn {
+    border-top-left-radius: 100px !important;
+    border-bottom-left-radius: 100px !important;
 }
 
 .btn-group > .btn:last-child,
@@ -233,8 +239,28 @@ body {
     border-bottom-right-radius: 100px !important;
 }
 
-.btn-group > .btn + .btn {
-    border-left: 1px solid rgba(0, 0, 0, .08) !important;
+/* Segmented button (M3): các lựa chọn dạng radio */
+.btn-group:has(> .btn-check) {
+    display: flex;
+    width: 100%;
+    max-width: 420px;
+}
+
+.btn-group:has(> .btn-check) > .btn {
+    flex: 1 1 0;
+    min-width: 0;
+    background: transparent !important;
+    color: var(--md-on-surface) !important;
+    border: 1px solid var(--md-outline) !important;
+}
+
+.btn-group:has(> .btn-check) > .btn + .btn-check + .btn {
+    border-left: 0 !important;
+}
+
+.btn-group > .btn-check:checked + .btn {
+    background: var(--md-secondary-container) !important;
+    color: var(--md-on-secondary-container) !important;
 }
 
 /* Nút icon tròn (chỉ có icon) */
@@ -333,25 +359,110 @@ body {
     border-color: var(--md-primary);
 }
 
+/* Switch M3: hàng "nhãn ... công tắc", công tắc canh giữa theo chiều dọc */
+.form-switch {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding-left: 0;
+    min-height: 40px;
+}
+
+.form-switch .form-check-label {
+    order: 1;
+    flex: 1;
+    min-width: 0;
+    cursor: pointer;
+    line-height: 1.35;
+}
+
 .form-switch .form-check-input {
-    width: 2.6em;
-    height: 1.5em;
-    margin-top: -.1em;
+    order: 2;
+    float: none;
+    flex-shrink: 0;
+    margin: 0;
+    width: 52px;
+    height: 32px;
     border-radius: 100px;
     background-color: var(--md-surface-container-highest);
     border: 2px solid var(--md-outline);
-    --bs-form-switch-bg: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='2.2' fill='%23717971'/%3e%3c/svg%3e");
+    background-size: auto 100%;
+    --bs-form-switch-bg: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-16 -16 32 32'%3e%3ccircle r='8' fill='%23717971'/%3e%3c/svg%3e");
     transition: background-position .2s var(--md-ease), background-color .2s;
 }
 
 .form-switch .form-check-input:checked {
     background-color: var(--md-primary);
     border-color: var(--md-primary);
-    --bs-form-switch-bg: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e");
+    --bs-form-switch-bg: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-16 -16 32 32'%3e%3ccircle r='12' fill='%23fff'/%3e%3c/svg%3e");
 }
 
-.form-switch .form-check-label {
-    padding-left: .35rem;
+/* Ô chọn màu M3: chấm tròn + nhãn + mã màu, cả hàng bấm được */
+.color-field {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 56px;
+    padding: 8px 14px 8px 10px;
+    border: 1px solid var(--md-outline-variant);
+    border-radius: 12px;
+    background: var(--md-surface-container-lowest);
+    cursor: pointer;
+    transition: background-color .15s, border-color .15s;
+    margin: 0;
+    width: 100%;
+}
+
+.color-field:hover {
+    background: var(--md-surface-container-low);
+    border-color: var(--md-outline);
+}
+
+.color-field:focus-within {
+    border-color: var(--md-primary);
+    box-shadow: inset 0 0 0 1px var(--md-primary);
+}
+
+.color-field input[type="color"] {
+    -webkit-appearance: none;
+    appearance: none;
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: none;
+    cursor: pointer;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, .18);
+}
+
+.color-field input[type="color"]::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+.color-field input[type="color"]::-webkit-color-swatch {
+    border: 0;
+    border-radius: 50%;
+}
+
+.color-field input[type="color"]::-moz-color-swatch {
+    border: 0;
+    border-radius: 50%;
+}
+
+.color-field .color-label {
+    flex: 1;
+    min-width: 0;
+    font-size: .9rem;
+    color: var(--md-on-surface);
+}
+
+.color-field .color-hex {
+    font-family: ui-monospace, Consolas, monospace;
+    font-size: .8rem;
+    color: var(--md-on-surface-variant);
+    text-transform: uppercase;
 }
 
 .form-range::-webkit-slider-thumb {
@@ -538,4 +649,114 @@ body {
 * {
     scrollbar-width: thin;
     scrollbar-color: var(--md-outline-variant) transparent;
+}
+
+/* ---------- Nút chỉ có icon (M3 icon button) ---------- */
+.btn.btn-icon {
+    width: 40px;
+    height: 40px;
+    min-height: 40px;
+    padding: 0 !important;
+    border-radius: 50% !important;
+    flex-shrink: 0;
+    gap: 0;
+}
+
+.btn.btn-icon.btn-sm {
+    width: 36px;
+    height: 36px;
+    min-height: 36px;
+}
+
+.btn.btn-icon > .li {
+    font-size: 1.15rem;
+}
+
+.btn-group > .btn.btn-icon:last-child {
+    border-radius: 0 100px 100px 0 !important;
+    width: 44px;
+}
+
+.btn-link.btn-icon {
+    --bs-btn-color: var(--md-on-surface-variant);
+    --bs-btn-hover-color: var(--md-on-surface);
+    --bs-btn-active-color: var(--md-on-surface);
+    color: var(--md-on-surface-variant) !important;
+}
+
+.btn-link.btn-icon.text-danger,
+.btn-light.btn-icon.text-danger {
+    color: var(--md-error) !important;
+}
+
+/* ---------- Huy hiệu (badge) theo bảng màu M3 ---------- */
+.badge.text-bg-success,
+.badge.bg-success {
+    background: var(--md-primary-container) !important;
+    color: var(--md-on-primary-container) !important;
+}
+
+.badge.text-bg-warning,
+.badge.bg-warning {
+    background: var(--md-warning-container) !important;
+    color: var(--md-on-warning-container) !important;
+}
+
+.badge.text-bg-info,
+.badge.bg-info {
+    background: var(--md-tertiary-container) !important;
+    color: #001f27 !important;
+}
+
+.badge.text-bg-danger,
+.badge.bg-danger {
+    background: var(--md-error-container) !important;
+    color: var(--md-on-error-container) !important;
+}
+
+.badge.text-bg-secondary,
+.badge.bg-secondary {
+    background: var(--md-surface-container-highest) !important;
+    color: var(--md-on-surface-variant) !important;
+}
+
+.badge.text-bg-light {
+    background: var(--md-surface-container) !important;
+    color: var(--md-on-surface-variant) !important;
+    border: 0 !important;
+}
+
+.badge.text-bg-dark {
+    background: #2c322d !important;
+    color: #edf2ea !important;
+}
+
+.badge .li {
+    vertical-align: -1px;
+}
+
+/* ---------- Chọn tệp ---------- */
+.form-control[type="file"] {
+    padding: 0;
+    overflow: hidden;
+}
+
+.form-control[type="file"]::file-selector-button {
+    height: 100%;
+    min-height: 40px;
+    margin: 0 12px 0 0;
+    padding: 0 16px;
+    border: 0;
+    border-right: 1px solid var(--md-outline-variant);
+    background: var(--md-secondary-container);
+    color: var(--md-on-secondary-container);
+    font-weight: 500;
+}
+
+.form-control[type="file"]:hover:not(:disabled):not([readonly])::file-selector-button {
+    background: color-mix(in srgb, var(--md-on-secondary-container) 8%, var(--md-secondary-container));
+}
+
+code {
+    color: #9c2a63;
 }

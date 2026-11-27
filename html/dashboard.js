@@ -20,6 +20,19 @@ $(function () {
       .to(toast[0], { x: 40, autoAlpha: 0, duration: 0.3, ease: "power2.in" }, "+=" + (type === "danger" ? 6.6 : 3.1));
   }
 
+  // Điện thoại: tab đang chọn luôn hiện trong thanh tab vuốt ngang
+  $(".admin-tabs").on("shown.bs.tab", ".nav-link", function () {
+    this.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+  });
+
+  // Hiện mã màu cạnh ô chọn màu
+  function syncColorHex() {
+    $(".color-field").each(function () {
+      $(this).find(".color-hex").text($(this).find("input[type=color]").val());
+    });
+  }
+  $(document).on("input change", ".color-field input[type=color]", syncColorHex);
+
   function loading(on) {
     $("#loading").toggleClass("d-none", !on);
   }
@@ -125,8 +138,8 @@ $(function () {
           <td><div class="participant-name">${esc(p.name)}</div>
               ${p.email ? `<div class="small text-muted">${esc(p.email)}</div>` : `<div class="small text-warning-emphasis"><i class="li icon-mail-x"></i> chưa có email</div>`}</td>
           <td class="text-end text-nowrap" style="width:90px">
-            <button class="btn btn-sm btn-link text-dark p-1 edit-participant" title="Sửa"><i class="li icon-pencil"></i></button>
-            <button class="btn btn-sm btn-link text-danger p-1 delete-participant" title="Xoá"><i class="li icon-trash-2"></i></button>
+            <button class="btn btn-icon btn-sm btn-link text-dark edit-participant" title="Sửa"><i class="li icon-pencil"></i></button>
+            <button class="btn btn-icon btn-sm btn-link text-danger delete-participant" title="Xoá"><i class="li icon-trash-2"></i></button>
           </td>
         </tr>`
         )
@@ -325,8 +338,8 @@ $(function () {
           </div>
           <div class="winner-actions">
             ${w.status === "pending" ? `<button class="btn btn-sm btn-success w-confirm"><i class="li icon-check"></i> Xác nhận${state.settings.autoEmail && w.email ? " &amp; gửi mail" : ""}</button>` : ""}
-            <div class="btn-group btn-group-sm">
-              <button class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' ${w.email ? "" : "disabled"}>
+            <div class="dropdown">
+              <button class="btn btn-sm btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' ${w.email ? "" : "disabled"}>
                 <i class="li icon-mail"></i> Gửi email
               </button>
               <ul class="dropdown-menu">
@@ -337,8 +350,8 @@ $(function () {
                 <li><a class="dropdown-item w-preview" data-type="cancel" href="#"><i class="li icon-eye"></i> Xem trước email xin lỗi</a></li>
               </ul>
             </div>
-            <div class="btn-group btn-group-sm">
-              <button class="btn btn-outline-dark dropdown-toggle" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' aria-label="Thao tác khác"><i class="li icon-ellipsis"></i></button>
+            <div class="dropdown">
+              <button class="btn btn-icon btn-sm btn-outline-dark dropdown-toggle" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' aria-label="Thao tác khác"><i class="li icon-ellipsis"></i></button>
               <ul class="dropdown-menu dropdown-menu-end">
                 ${w.status !== "cancelled" ? '<li><a class="dropdown-item w-cancel" href="#"><i class="li icon-circle-x"></i> Huỷ kết quả (không gửi mail)</a></li>' : ""}
                 <li><a class="dropdown-item w-restore" href="#"><i class="li icon-rotate-ccw"></i> Trả về danh sách tham dự</a></li>
@@ -509,10 +522,10 @@ $(function () {
               </div>
               <div class="d-flex gap-1 mt-3 flex-wrap">
                 ${current ? '<span class="badge text-bg-success align-self-center me-auto"><i class="li icon-target"></i> Đang quay</span>' : '<button class="btn btn-sm btn-outline-success me-auto p-set-current">Quay giải này</button>'}
-                <button class="btn btn-sm btn-light p-move" data-dir="up" ${i === 0 ? "disabled" : ""} title="Lên"><i class="li icon-arrow-up"></i></button>
-                <button class="btn btn-sm btn-light p-move" data-dir="down" ${i === state.prizes.length - 1 ? "disabled" : ""} title="Xuống"><i class="li icon-arrow-down"></i></button>
-                <button class="btn btn-sm btn-light p-edit" title="Sửa"><i class="li icon-pencil"></i></button>
-                <button class="btn btn-sm btn-light text-danger p-delete" title="Xoá"><i class="li icon-trash-2"></i></button>
+                <button class="btn btn-icon btn-sm btn-light p-move" data-dir="up" ${i === 0 ? "disabled" : ""} title="Lên"><i class="li icon-arrow-up"></i></button>
+                <button class="btn btn-icon btn-sm btn-light p-move" data-dir="down" ${i === state.prizes.length - 1 ? "disabled" : ""} title="Xuống"><i class="li icon-arrow-down"></i></button>
+                <button class="btn btn-icon btn-sm btn-light p-edit" title="Sửa"><i class="li icon-pencil"></i></button>
+                <button class="btn btn-icon btn-sm btn-light text-danger p-delete" title="Xoá"><i class="li icon-trash-2"></i></button>
               </div>
             </div>
           </div>`;
@@ -777,7 +790,7 @@ $(function () {
     const images = $("#theme-images");
     Object.keys(IMAGE_SLOTS).forEach((key) => {
       const card = $(`
-        <div class="col-6 col-lg-3">
+        <div class="col-12 col-sm-6 col-xl-3">
           <div class="theme-image-card" data-key="${key}">
             <div class="d-flex justify-content-between align-items-center mb-2">
               <span class="small fw-semibold"></span>
@@ -788,7 +801,7 @@ $(function () {
             <input type="file" accept="image/*" class="d-none">
             <div class="d-flex gap-2">
               <button type="button" class="btn btn-sm btn-return flex-grow-1 theme-upload"><i class="li icon-upload"></i> Chọn ảnh</button>
-              <button type="button" class="btn btn-sm btn-outline-dark theme-reset-image" title="Dùng ảnh mặc định"><i class="li icon-rotate-ccw"></i></button>
+              <button type="button" class="btn btn-icon btn-sm btn-outline-dark theme-reset-image" title="Dùng ảnh mặc định"><i class="li icon-rotate-ccw"></i></button>
             </div>
           </div>
         </div>`);
@@ -798,9 +811,9 @@ $(function () {
     });
 
     COLOR_FIELDS.forEach((f) => {
-      const item = $(`<div class="col-sm-6"><label class="theme-color-item"><input type="color" class="form-control form-control-color"><span></span></label></div>`);
+      const item = $(`<div class="col-sm-6"><label class="color-field"><input type="color"><span class="color-label"></span><span class="color-hex"></span></label></div>`);
       item.find("input").attr("data-key", f.key);
-      item.find("span").text(f.label);
+      item.find(".color-label").text(f.label);
       $("#theme-colors").append(item);
     });
 
@@ -828,6 +841,7 @@ $(function () {
     $("#theme-colors input[type=color]").each(function () {
       if (document.activeElement !== this) $(this).val(previewColors[$(this).data("key")]);
     });
+    syncColorHex();
     renderColorPreview();
     Api.applyTheme(state.theme); // ảnh nền của chính Dashboard
   }
@@ -938,7 +952,7 @@ $(function () {
     Object.keys(BRAND_IMAGES).forEach((key) => {
       const cfg = BRAND_IMAGES[key];
       const card = $(`
-        <div class="col-md-4">
+        <div class="col-12 col-sm-6 col-lg-4">
           <div class="theme-image-card" data-brand="${key}">
             <div class="d-flex justify-content-between align-items-center mb-2">
               <span class="small fw-semibold"></span>
@@ -949,7 +963,7 @@ $(function () {
             <input type="file" accept="image/*" class="d-none">
             <div class="d-flex gap-2">
               <button type="button" class="btn btn-sm btn-return flex-grow-1 brand-upload"><i class="li icon-upload"></i> Chọn ảnh</button>
-              <button type="button" class="btn btn-sm btn-outline-dark brand-reset" title="Bỏ ảnh"><i class="li icon-rotate-ccw"></i></button>
+              <button type="button" class="btn btn-icon btn-sm btn-outline-dark brand-reset" title="Bỏ ảnh"><i class="li icon-rotate-ccw"></i></button>
             </div>
           </div>
         </div>`);
@@ -965,6 +979,7 @@ $(function () {
       $("#brand-site-name").val(b.siteName);
       $("#brand-description").val(b.description);
       $("#brand-theme-color").val(b.themeColor);
+      syncColorHex();
       brandingFilled = true;
     }
     Object.keys(BRAND_IMAGES).forEach((key) => {
@@ -1057,10 +1072,10 @@ $(function () {
           const isDefault = (party.defaultSoundId || "") === s.id;
           return `
           <div class="party-sound-row" data-id="${esc(s.id)}">
-            <button type="button" class="btn btn-sm btn-light ps-play" title="Nghe thử"><i class="li icon-volume-2"></i></button>
+            <button type="button" class="btn btn-icon btn-sm btn-light ps-play" title="Nghe thử"><i class="li icon-volume-2"></i></button>
             <div class="name">${esc(s.name)}${s.winId ? ' <span class="badge text-bg-light border">+ âm thanh kết quả</span>' : ""}</div>
             ${isDefault ? '<span class="badge text-bg-success">Mặc định</span>' : '<button type="button" class="btn btn-sm btn-outline-success ps-default">Đặt mặc định</button>'}
-            ${s.builtin ? "" : '<button type="button" class="btn btn-sm btn-link text-danger p-1 ps-delete" title="Xoá"><i class="li icon-trash-2"></i></button>'}
+            ${s.builtin ? "" : '<button type="button" class="btn btn-icon btn-sm btn-link text-danger ps-delete" title="Xoá"><i class="li icon-trash-2"></i></button>'}
           </div>`;
         })
         .join("")
@@ -1082,7 +1097,7 @@ $(function () {
               <div class="name">${esc(b.name)}</div>
               <div class="d-flex gap-1">
                 ${isDefault ? '<span class="badge text-bg-success align-self-center me-auto">Mặc định</span>' : '<button type="button" class="btn btn-sm btn-outline-success me-auto pt-default">Đặt mặc định</button>'}
-                ${b.builtin ? "" : '<button type="button" class="btn btn-sm btn-link text-danger p-1 pt-delete" title="Xoá"><i class="li icon-trash-2"></i></button>'}
+                ${b.builtin ? "" : '<button type="button" class="btn btn-icon btn-sm btn-link text-danger pt-delete" title="Xoá"><i class="li icon-trash-2"></i></button>'}
               </div>
             </div>
           </div>`;
@@ -1104,7 +1119,7 @@ $(function () {
               <div class="name">${esc(b.name)}</div>
               <div class="d-flex gap-1">
                 ${active ? '<span class="badge text-bg-success align-self-center me-auto">Đang dùng</span>' : '<button type="button" class="btn btn-sm btn-outline-success me-auto pt-use">Dùng nút này</button>'}
-                ${b.builtin ? "" : '<button type="button" class="btn btn-sm btn-link text-danger p-1 pt-delete" title="Xoá"><i class="li icon-trash-2"></i></button>'}
+                ${b.builtin ? "" : '<button type="button" class="btn btn-icon btn-sm btn-link text-danger pt-delete" title="Xoá"><i class="li icon-trash-2"></i></button>'}
               </div>
             </div>
           </div>`;

@@ -453,28 +453,17 @@ $(document).ready(function () {
     const target =
       current - (((current % 360) + 360) % 360) + CONFIG.TIMING.EXTRA_SPINS * 360 + finalAngle + 360;
 
-    let lastSlice = -1;
-    const pulse = gsap.to(".spin-button-image", { scale: 1.06, duration: 0.5, repeat: -1, yoyo: true, ease: "sine.inOut" });
+    // Nút quay ở giữa đứng yên; chỉ vòng quay chuyển động
     gsap.to(wheel, {
       rotation: target,
       duration: CONFIG.TIMING.SPIN_DURATION / 1000,
       ease: CONFIG.TIMING.EASING,
-      onUpdate() {
-        // Mũi tên rung nhẹ mỗi khi lướt qua 1 ô
-        const deg = ((Number(gsap.getProperty(wheel, "rotation")) % 360) + 360) % 360;
-        const slice = Math.floor(((360 - deg) % 360) / segmentAngle);
-        if (slice !== lastSlice) {
-          lastSlice = slice;
-          gsap.fromTo(".spin-button-image", { rotation: -6 }, { rotation: 0, duration: 0.25, ease: "power2.out", overwrite: "auto" });
-        }
-      },
+      force3D: true,
       onComplete() {
         isSpinning = false;
         $("#ez-spin-btn").css("pointer-events", "auto");
         $(".spin-button-wrapper").removeClass("spinning");
         stopStarsAnimation();
-        pulse.kill();
-        gsap.to(".spin-button-image", { scale: 1, rotation: 0, duration: 0.3, ease: "power2.out" });
         gsap.set(wheel, { rotation: finalAngle }); // giữ góc nhỏ cho lần quay sau
         gsap.delayedCall(CONFIG.TIMING.MODAL_DELAY / 1000, showSpinResult);
       },

@@ -17,20 +17,25 @@
 <body class="md3-admin">
     <!-- Thanh trên cùng -->
     <nav class="admin-nav">
-        <div class="container d-flex align-items-center gap-2 flex-wrap">
-            <div class="admin-brand me-auto">
+        <div class="container admin-nav-inner">
+            <div class="admin-brand">
                 <img data-brand-logo class="brand-logo" alt="" hidden>
-                <i class="li icon-settings"></i> Quản trị · <span id="nav-event-name"></span>
+                <span class="admin-brand-text"><span class="admin-brand-kicker">Quản trị</span><span
+                        id="nav-event-name"></span></span>
             </div>
-            <a href="/" class="btn btn-sm btn-return"><i class="li icon-target"></i> Mở vòng quay</a>
-            <div class="btn-group btn-group-sm">
-                <a href="/bang-danh-sach/" target="_blank" class="btn btn-light"><i class="li icon-monitor"></i> Bảng danh
-                    sách</a>
-                <button type="button" class="btn btn-light" id="copy-board-link" title="Sao chép link bảng danh sách"><i
-                        class="li icon-link"></i></button>
+            <div class="admin-actions">
+                <a href="/" class="btn btn-sm btn-return" title="Mở vòng quay"><i class="li icon-target"></i><span
+                        class="btn-label">Mở vòng quay</span></a>
+                <div class="btn-group btn-group-sm">
+                    <a href="/bang-danh-sach/" target="_blank" class="btn btn-light" title="Mở bảng danh sách"><i
+                            class="li icon-monitor"></i><span class="btn-label">Bảng danh sách</span></a>
+                    <button type="button" class="btn btn-icon btn-light" id="copy-board-link"
+                        title="Sao chép link bảng danh sách" aria-label="Sao chép link bảng danh sách"><i
+                            class="li icon-link"></i></button>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-light" id="logout" title="Đăng xuất"><i
+                        class="li icon-log-out"></i><span class="btn-label">Đăng xuất</span></button>
             </div>
-            <button type="button" class="btn btn-sm btn-outline-light" id="logout"><i class="li icon-log-out"></i>
-                Đăng xuất</button>
         </div>
     </nav>
 
@@ -52,10 +57,10 @@
                     type="button"><i class="li icon-mail"></i> Email &amp; Google Sheet</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-theme"
                     type="button"><i class="li icon-palette"></i> Giao diện</button></li>
-            <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-brand"
-                    type="button"><i class="li icon-badge-check"></i> Thương hiệu</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-party"
                     type="button"><i class="li icon-party-popper"></i> Party</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-brand"
+                    type="button"><i class="li icon-badge-check"></i> Thương hiệu</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-data"
                     type="button"><i class="li icon-database"></i> Dữ liệu</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-support"
@@ -119,7 +124,7 @@
                         <div class="card shadow-sm">
                             <div class="card-header bg-warning text-dark d-flex align-items-center">
                                 <h5 class="mb-0 me-auto">Người trúng thưởng (<span id="winner-count">0</span>)</h5>
-                                <button type="button" class="btn btn-sm btn-dark" id="export-winners"
+                                <button type="button" class="btn btn-icon btn-sm btn-dark" id="export-winners"
                                     title="Tải danh sách trúng thưởng (.csv)"><i class="li icon-download"></i></button>
                             </div>
                             <div class="card-body">
@@ -240,8 +245,8 @@
                                     <button type="button" class="btn btn-return" id="save-script-url">Lưu</button>
                                     <button type="button" class="btn btn-outline-dark" id="test-script">Kiểm tra</button>
                                 </div>
-                                <div class="input-group input-group-sm mb-3">
-                                    <span class="input-group-text">Gửi email thử tới</span>
+                                <label class="form-label" for="test-email-to">Gửi email thử tới</label>
+                                <div class="input-group mb-3">
                                     <input type="email" class="form-control" id="test-email-to"
                                         placeholder="email-cua-ban@gmail.com">
                                     <button type="button" class="btn btn-outline-dark" id="send-test-email">Gửi
@@ -299,8 +304,8 @@
                                     <button type="button" class="btn btn-return" id="save-templates">Lưu mẫu</button>
                                     <button type="button" class="btn btn-outline-dark" id="preview-template"><i
                                             class="li icon-eye"></i> Xem trước</button>
-                                    <button type="button" class="btn btn-outline-secondary ms-auto"
-                                        id="reset-templates">Khôi phục mẫu mặc định</button>
+                                    <button type="button" class="btn btn-link ms-sm-auto"
+                                        id="reset-templates"><i class="li icon-rotate-ccw"></i> Khôi phục mẫu mặc định</button>
                                 </div>
                             </div>
                         </div>
@@ -371,8 +376,8 @@
                                             dưới 160 ký tự.</div>
                                     </div>
                                     <div class="mb-3">
-                                        <label class="form-label d-block">Màu thanh trình duyệt (điện thoại)</label>
-                                        <input type="color" class="form-control form-control-color" id="brand-theme-color">
+                                        <label class="form-label d-block" for="brand-theme-color">Màu thanh trình duyệt (điện thoại)</label>
+                                        <label class="color-field" style="max-width:320px"><input type="color" id="brand-theme-color"><span class="color-label">Màu thanh địa chỉ</span><span class="color-hex"></span></label>
                                     </div>
                                     <button type="submit" class="btn btn-return">Lưu thương hiệu</button>
                                 </form>
@@ -516,7 +521,7 @@
                                 <p class="small">Xoá toàn bộ người tham dự và người trúng thưởng để bắt đầu sự kiện mới.
                                     Giải thưởng, cài đặt email và giao diện được giữ lại.</p>
                                 <button type="button" class="btn btn-outline-danger" id="reset-all-data"><i
-                                        class="li icon-trash-2"></i> Xoá toàn bộ người tham dự &amp; trúng thưởng</button>
+                                        class="li icon-trash-2"></i> Xoá toàn bộ dữ liệu</button>
                             </div>
                         </div>
                     </div>
@@ -608,7 +613,7 @@
                                 <input type="radio" class="btn-check" name="prize-type" id="prize-type-gift"
                                     value="gift" checked>
                                 <label class="btn btn-outline-success" for="prize-type-gift"><i
-                                        class="li icon-gift"></i> Hiện vật / phần thưởng</label>
+                                        class="li icon-gift"></i> Hiện vật</label>
                                 <input type="radio" class="btn-check" name="prize-type" id="prize-type-code"
                                     value="code">
                                 <label class="btn btn-outline-success" for="prize-type-code"><i

@@ -991,131 +991,310 @@ body {
 
 /* =====================================================================
    Material Design 3 cho trang Quản trị & Đăng nhập
-   (các quy tắc chung cho nút, ô nhập, hộp thoại... nằm trong /libs/md3.css)
+   (quy tắc chung cho nút, ô nhập, hộp thoại... nằm trong /libs/md3.css)
    ===================================================================== */
 body.md3-admin {
     background: var(--md-surface) !important;
     background-image: none !important;
     color: var(--md-on-surface);
+    min-height: 100vh;
 }
 
-/* Top app bar */
+.md3-admin .container {
+    max-width: 1280px;
+}
+
+.md3-admin h5,
+.md3-admin h6 {
+    letter-spacing: 0;
+}
+
+/* ---------- Top app bar ---------- */
 .md3-admin .admin-nav {
     background: var(--md-surface-container);
     backdrop-filter: none;
     box-shadow: none;
     border-bottom: 1px solid var(--md-outline-variant);
-    padding: 8px 0;
+    padding: 10px 0;
+}
+
+.md3-admin .admin-nav > .container {
+    row-gap: 10px !important;
 }
 
 .md3-admin .admin-brand {
     color: var(--md-on-surface);
     font-weight: 500;
-    font-size: 1.1rem;
+    font-size: 1.125rem;
     display: flex;
     align-items: center;
     gap: 8px;
+    min-width: 0;
 }
 
 .md3-admin .admin-brand > .li {
     color: var(--md-primary);
+    font-size: 1.25rem;
+}
+
+.md3-admin .admin-brand #nav-event-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .md3-admin .admin-nav .btn-outline-light {
     --bs-btn-color: var(--md-on-surface-variant);
     --bs-btn-hover-color: var(--md-on-surface-variant);
+    --bs-btn-active-color: var(--md-on-surface-variant);
     --bs-btn-border-color: var(--md-outline);
     --bs-btn-hover-border-color: var(--md-outline);
+    --bs-btn-hover-bg: transparent;
 }
 
-.md3-admin .admin-nav .btn-light {
+.md3-admin .admin-nav .btn-group .btn-light {
     --bs-btn-bg: transparent;
     --bs-btn-border-color: var(--md-outline);
     --bs-btn-color: var(--md-primary);
     --bs-btn-hover-bg: transparent;
     --bs-btn-hover-border-color: var(--md-outline);
     --bs-btn-hover-color: var(--md-primary);
+    --bs-btn-active-bg: var(--md-secondary-container);
 }
 
-.md3-admin .btn-return {
-    background: var(--md-primary);
-    color: #fff;
+.md3-admin .admin-nav .btn-group .btn-light + .btn-light {
+    border-left: 0;
+    padding-left: .8rem;
+    padding-right: .9rem;
 }
 
-/* Thanh tab: navigation chips trên nền surface */
+.btn-return,
+.btn-add-participant {
+    --bs-btn-bg: var(--md-primary);
+    --bs-btn-color: #fff;
+    --bs-btn-hover-bg: var(--md-primary);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-active-bg: var(--md-primary);
+    --bs-btn-active-color: #fff;
+    --bs-btn-border-color: var(--md-primary);
+    --bs-btn-hover-border-color: var(--md-primary);
+    --bs-btn-active-border-color: var(--md-primary);
+    background-color: var(--md-primary) !important;
+    color: #fff !important;
+}
+
+.btn-return:hover,
+.btn-add-participant:hover {
+    box-shadow: var(--md-elev-1);
+}
+
+.md3-admin .admin-nav-inner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.md3-admin .admin-brand {
+    flex: 1;
+}
+
+.md3-admin .admin-brand-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.2;
+}
+
+.md3-admin .admin-brand-kicker {
+    font-size: .75rem;
+    font-weight: 500;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--md-primary);
+}
+
+.md3-admin #nav-event-name {
+    font-size: 1.125rem;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.md3-admin .admin-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.md3-admin .brand-logo {
+    height: 32px;
+    margin: 0;
+}
+
+/* Bảng người tham dự: email dài thì rút gọn bằng dấu … */
+.md3-admin .participants-wrapper table {
+    table-layout: fixed;
+}
+
+.md3-admin #participants-list td:nth-child(2) > div {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Thẻ giải: hàng thao tác gọn trên một dòng */
+.md3-admin .prize-card-admin .d-flex.gap-1 {
+    gap: 4px !important;
+    flex-wrap: nowrap !important;
+    align-items: center;
+}
+
+.md3-admin .prize-card-admin .p-set-current {
+    flex-shrink: 1;
+    min-width: 0;
+}
+
+/* ---------- Tab điều hướng: từng chip riêng, không khung bao ---------- */
 .md3-admin .admin-tabs {
-    background: var(--md-surface-container-low);
-    border-radius: 24px;
-    padding: 6px;
-    gap: 2px;
-    box-shadow: inset 0 0 0 1px var(--md-outline-variant);
+    background: none;
+    border-radius: 0;
+    padding: 0;
+    gap: 8px;
+    box-shadow: none;
+    flex-wrap: wrap;
 }
 
 .md3-admin .admin-tabs .nav-link {
-    color: var(--md-on-surface-variant);
-    font-weight: 500;
-    border-radius: 100px;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
+    height: 40px;
+    padding: 0 16px 0 12px;
+    border-radius: 8px;
+    border: 1px solid var(--md-outline-variant);
+    background: var(--md-surface-container-lowest);
+    color: var(--md-on-surface-variant);
+    font-weight: 500;
+    font-size: .875rem;
+    white-space: nowrap;
+    transition: background-color .2s var(--md-ease), border-color .2s, color .2s;
+}
+
+.md3-admin .admin-tabs .nav-link .li {
+    font-size: 1.05rem;
+    color: var(--md-primary);
+}
+
+.md3-admin .admin-tabs .nav-link:hover {
+    background: var(--md-surface-container-low);
+    border-color: var(--md-outline);
 }
 
 .md3-admin .admin-tabs .nav-link.active {
     background: var(--md-secondary-container);
+    border-color: var(--md-secondary-container);
     color: var(--md-on-secondary-container);
 }
 
 .md3-admin .admin-tabs .nav-link.active .li {
-    color: var(--md-primary);
+    color: var(--md-on-secondary-container);
 }
 
-/* Thẻ: header dùng tonal thay vì khối màu đậm */
+/* ---------- Thẻ (card) ---------- */
 .md3-admin .card {
     border-radius: 24px;
-    box-shadow: none;
+    box-shadow: none !important;
     background: var(--md-surface-container-lowest);
     border: 1px solid var(--md-outline-variant);
+    overflow: visible;
 }
 
 .md3-admin .card-header,
 .md3-admin .card-header.bg-warning {
-    background: var(--md-surface-container-lowest) !important;
+    background: transparent !important;
     color: var(--md-on-surface) !important;
-    padding: 18px 22px 6px;
-    font-size: 1.15rem;
+    padding: 20px 24px 4px;
+    gap: 8px;
+    border: 0;
+    min-height: 60px;
+}
+
+.md3-admin .card-header h5 {
+    font-size: 1.25rem;
     font-weight: 500;
+    color: var(--md-on-surface);
 }
 
 .md3-admin .card-header .li {
-    color: var(--md-primary);
+    color: inherit;
 }
 
 .md3-admin .card-header .btn-light,
 .md3-admin .card-header .btn-outline-light,
-.md3-admin .card-header .btn-dark {
+.md3-admin .card-header .btn-dark,
+.md3-admin .card-header .btn-warning {
     --bs-btn-bg: var(--md-secondary-container);
     --bs-btn-border-color: var(--md-secondary-container);
     --bs-btn-color: var(--md-on-secondary-container);
     --bs-btn-hover-bg: var(--md-secondary-container);
     --bs-btn-hover-color: var(--md-on-secondary-container);
     --bs-btn-hover-border-color: var(--md-secondary-container);
+    --bs-btn-active-bg: var(--md-secondary-container);
+    --bs-btn-active-color: var(--md-on-secondary-container);
 }
 
-.md3-admin .card-header .badge {
+.md3-admin .card-header > .badge {
     background: var(--md-primary-container) !important;
     color: var(--md-on-primary-container) !important;
 }
 
 .md3-admin .card-body {
-    padding: 14px 22px 22px;
+    padding: 12px 24px 24px;
 }
 
-/* Danh sách người tham dự */
+.md3-admin .card-body.small {
+    padding-top: 0;
+}
+
+.md3-admin .theme-section-title {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--md-on-surface);
+    border-bottom: 1px solid var(--md-outline-variant);
+    padding-bottom: 8px;
+    margin: 8px 0 16px;
+}
+
+/* ---------- Các hàng nút: luôn xuống dòng gọn, không tràn ---------- */
+.md3-admin .d-flex.gap-2 > .btn {
+    flex-shrink: 0;
+}
+
+/* ---------- Người tham dự ---------- */
+.md3-admin #participants-list td {
+    border-color: var(--md-outline-variant);
+    padding-top: 8px;
+    padding-bottom: 8px;
+}
+
 .md3-admin #participants-list tbody tr:hover {
     background: var(--md-surface-container-low);
 }
 
-/* Thẻ người trúng thưởng */
+.md3-admin #participants-list .btn {
+    min-height: 36px;
+    min-width: 36px;
+    padding: 0;
+    border-radius: 50%;
+}
+
+.md3-admin #participant-search {
+    max-width: 200px;
+}
+
+/* ---------- Thẻ người trúng thưởng ---------- */
 .md3-admin .winner-card {
     border: 0;
     border-radius: 16px;
@@ -1129,36 +1308,249 @@ body.md3-admin {
 }
 
 .md3-admin .winner-card.cancelled {
-    background: var(--md-surface-container-low);
-    opacity: .75;
+    opacity: .7;
 }
 
 .md3-admin .winner-num {
     background: var(--md-primary-container);
     color: var(--md-on-primary-container);
     font-weight: 700;
+    width: 32px;
+    height: 32px;
 }
 
+.md3-admin .winner-actions {
+    gap: 8px;
+    align-items: center;
+}
+
+.btn-icon.dropdown-toggle::after {
+    display: none;
+}
+
+/* ---------- Giải thưởng ---------- */
 .md3-admin .prize-card-admin {
     border: 1px solid var(--md-outline-variant);
     border-radius: 16px;
+    background: var(--md-surface-container-lowest);
 }
 
 .md3-admin .prize-card-admin.current {
     border-color: var(--md-primary);
-    background: var(--md-primary-container);
+    background: color-mix(in srgb, var(--md-primary-container) 45%, #fff);
+    box-shadow: inset 0 0 0 1px var(--md-primary);
 }
 
-/* Snackbar */
+.md3-admin .prize-thumb {
+    border-radius: 12px;
+    background: var(--md-surface-container);
+}
+
+.md3-admin .prize-thumb .li {
+    color: var(--md-primary);
+}
+
+/* ---------- Ảnh giao diện / thương hiệu ---------- */
+.md3-admin .theme-image-card {
+    border: 1px solid var(--md-outline-variant);
+    border-radius: 16px;
+    padding: 12px;
+    background: var(--md-surface-container-lowest);
+    gap: 4px;
+}
+
+.md3-admin .theme-image-card .fw-semibold {
+    font-weight: 500 !important;
+    font-size: .9rem !important;
+}
+
+.md3-admin .theme-image-preview {
+    border-radius: 12px;
+    height: 140px;
+}
+
+.md3-admin .theme-image-card .btn {
+    min-height: 40px;
+}
+
+.md3-admin .theme-image-card .theme-reset-image,
+.md3-admin .theme-image-card .brand-reset {
+    width: 40px;
+    padding: 0;
+    flex-shrink: 0;
+}
+
+/* Bảng màu có sẵn: chip lựa chọn */
+.md3-admin .theme-preset {
+    height: 32px;
+    min-height: 32px;
+    border-radius: 8px;
+    padding: 0 12px 0 8px;
+    color: var(--md-on-surface-variant) !important;
+    border-color: var(--md-outline-variant) !important;
+    font-weight: 500;
+}
+
+.md3-admin .theme-preset .swatch {
+    width: 16px;
+    height: 16px;
+}
+
+.md3-admin .theme-preset .swatch + .swatch {
+    margin-left: -9px;
+    box-shadow: 0 0 0 2px #fff;
+}
+
+.md3-admin .theme-preset.active,
+.md3-admin .theme-preset:hover {
+    background: var(--md-secondary-container) !important;
+    border-color: var(--md-secondary-container) !important;
+    color: var(--md-on-secondary-container) !important;
+}
+
+/* ---------- Google Sheet ---------- */
+.md3-admin .gsheet-step {
+    color: var(--md-on-surface);
+    font-weight: 500;
+    font-size: 1rem;
+    margin-top: 1.25rem;
+}
+
+.md3-admin .gsheet-step span {
+    background: var(--md-primary);
+    width: 26px;
+    height: 26px;
+    flex-shrink: 0;
+}
+
+.md3-admin .gsheet-code-wrapper {
+    border-radius: 12px;
+    overflow: hidden;
+    background: #1e1e1e;
+}
+
+.md3-admin .gsheet-code {
+    border-radius: 0;
+    padding: 52px 16px 16px;
+    max-height: 300px;
+}
+
+.md3-admin .gsheet-copy-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    min-height: 34px;
+    --bs-btn-bg: #3a3f3b;
+    --bs-btn-border-color: #3a3f3b;
+    --bs-btn-color: #e3ebe3;
+    --bs-btn-hover-bg: #3a3f3b;
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-border-color: #3a3f3b;
+}
+
+/* Ô nhập + nút nằm cùng hàng */
+.md3-admin .input-group > .btn {
+    min-height: auto;
+}
+
+.md3-admin .input-group > .btn:last-child {
+    border-radius: 0 8px 8px 0 !important;
+}
+
+.md3-admin .input-group > .btn:not(:last-child) {
+    border-radius: 0 !important;
+}
+
+.md3-admin .input-group > .btn-return + .btn-outline-dark {
+    border-left: 0 !important;
+}
+
+/* Tab con (mẫu email) kiểu M3 primary tabs */
+.md3-admin .nav-tabs {
+    border-bottom: 1px solid var(--md-outline-variant);
+    gap: 4px;
+}
+
+.md3-admin .nav-tabs .nav-link {
+    border: 0;
+    border-bottom: 3px solid transparent;
+    color: var(--md-on-surface-variant);
+    font-weight: 500;
+    padding: .7rem 1rem;
+    border-radius: 0;
+    background: none;
+}
+
+.md3-admin .nav-tabs .nav-link.active {
+    color: var(--md-primary);
+    border-bottom-color: var(--md-primary);
+    background: none;
+}
+
+/* ---------- Party ---------- */
+.md3-admin .party-sound-row {
+    border-color: var(--md-outline-variant);
+    padding: 10px 0;
+}
+
+.md3-admin .party-sound-row .name {
+    font-weight: 500;
+}
+
+.md3-admin .party-tile {
+    border: 1px solid var(--md-outline-variant);
+    border-radius: 16px;
+    padding: 10px;
+}
+
+.md3-admin .party-tile.active {
+    border-color: var(--md-primary);
+    box-shadow: inset 0 0 0 1px var(--md-primary);
+    background: color-mix(in srgb, var(--md-primary-container) 35%, #fff);
+}
+
+.md3-admin .party-tile-preview {
+    border-radius: 12px;
+}
+
+.md3-admin .party-add-form {
+    border-top: 1px solid var(--md-outline-variant);
+    padding-top: 16px;
+}
+
+/* ---------- Thương hiệu ---------- */
+.md3-admin .serp-preview,
+.md3-admin .share-preview {
+    border-color: var(--md-outline-variant);
+    border-radius: 12px;
+}
+
+/* ---------- Ủng hộ ---------- */
+.md3-admin .support-card {
+    box-shadow: var(--md-elev-2);
+    background: var(--md-surface-container-low);
+    border-radius: 28px;
+}
+
+.md3-admin .support-amounts button {
+    border-radius: 8px;
+    height: 36px;
+    padding: 0 16px;
+    font-weight: 500;
+    border-color: var(--md-outline-variant);
+}
+
+/* ---------- Snackbar ---------- */
 .md3-admin .toast-notification {
     border-radius: 8px;
     box-shadow: var(--md-elev-3);
     background: #2c322d !important;
     color: #edf2ea !important;
     border: 0 !important;
+    border-left: 4px solid #6fdb97 !important;
     font-weight: 400;
     font-size: .9rem;
-    border-left: 4px solid #6fdb97 !important;
+    padding: 14px 16px;
 }
 
 .md3-admin .toast-notification.toast-danger {
@@ -1169,12 +1561,13 @@ body.md3-admin {
     border-left-color: #ffd97a !important;
 }
 
-.md3-admin .gsheet-step span,
-.md3-admin .theme-section-title {
-    font-weight: 500;
+.md3-admin .toast-stack {
+    top: auto;
+    bottom: 24px;
+    right: 24px;
 }
 
-/* Đăng nhập: giữ ảnh nền chủ đề, thẻ dạng dialog M3 */
+/* ---------- Đăng nhập: giữ ảnh nền chủ đề, thẻ dạng dialog ---------- */
 body.md3-login .card {
     border-radius: 28px;
     background: var(--md-surface-container-low);
@@ -1188,6 +1581,7 @@ body.md3-login .card-header {
     font-size: 1.5rem;
     font-weight: 400;
     padding: 26px 26px 4px;
+    border: 0;
 }
 
 body.md3-login .card-header .li {
@@ -1198,12 +1592,152 @@ body.md3-login .card-body {
     padding: 14px 26px 26px;
 }
 
-@media (max-width: 768px) {
+/* ---------- Máy tính bảng & điện thoại: tab vuốt ngang ---------- */
+@media (max-width: 991.98px) {
+    /* Tab chip: một hàng, vuốt ngang, tràn sát mép màn hình */
     .md3-admin .admin-tabs {
-        border-radius: 16px;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scrollbar-width: none;
+        margin-left: calc(var(--bs-gutter-x) * -.5);
+        margin-right: calc(var(--bs-gutter-x) * -.5);
+        padding: 2px calc(var(--bs-gutter-x) * .5);
+        scroll-padding: 0 16px;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .md3-admin .admin-tabs::-webkit-scrollbar {
+        display: none;
+    }
+
+    .md3-admin .admin-tabs .nav-link {
+        font-size: .875rem;
+        padding: 0 14px 0 10px;
+    }
+
+}
+
+/* ---------- Điện thoại ---------- */
+@media (max-width: 575.98px) {
+    /* Thanh trên: chỉ còn icon cho gọn */
+    .md3-admin .admin-actions .btn-label {
+        display: none;
+    }
+
+    .md3-admin .admin-actions > .btn,
+    .md3-admin .admin-actions .btn-group > .btn.btn-light {
+        width: 40px;
+        height: 40px;
+        padding: 0;
+        border-radius: 50% !important;
+    }
+
+    .md3-admin .admin-actions .btn-group {
+        gap: 8px;
+    }
+
+    .md3-admin .admin-actions .btn-group > .btn.btn-light {
+        border: 1px solid var(--md-outline) !important;
+    }
+
+    .md3-admin .brand-logo {
+        max-width: 72px;
+        height: 28px;
+    }
+
+    .md3-admin .admin-brand-kicker {
+        white-space: nowrap;
+    }
+
+    /* Thẻ ảnh: dạng ngang (ảnh bên trái, mô tả + nút bên phải) */
+    .md3-admin .theme-image-card {
+        display: grid;
+        grid-template-columns: 112px 1fr;
+        grid-template-areas: "head head" "img hint" "img actions";
+        column-gap: 12px;
+        row-gap: 6px;
+        align-items: start;
+    }
+
+    .md3-admin .theme-image-card > :nth-child(1) {
+        grid-area: head;
+        margin: 0 !important;
+    }
+
+    .md3-admin .theme-image-card > .theme-image-preview {
+        grid-area: img;
+        height: 112px;
+        margin: 0;
+    }
+
+    .md3-admin .theme-image-card > .text-muted {
+        grid-area: hint;
+        margin: 0 !important;
+        font-size: .8rem;
+    }
+
+    .md3-admin .theme-image-card > .d-flex:last-child {
+        grid-area: actions;
+        align-self: end;
+    }
+}
+
+@media (max-width: 768px) {
+    .md3-admin .admin-nav {
+        position: sticky;
+        padding: 8px 0;
+    }
+
+    .md3-admin #nav-event-name {
+        font-size: 1rem;
+    }
+
+    .md3-admin .admin-nav .btn {
+        min-height: 36px;
+    }
+
+    .md3-admin .container.py-4 {
+        padding-top: 16px !important;
+    }
+
+    .md3-admin .card {
+        border-radius: 20px;
+    }
+
+    .md3-admin .card-header,
+    .md3-admin .card-header.bg-warning {
+        padding: 16px 16px 4px;
+        min-height: 52px;
+    }
+
+    .md3-admin .card-header h5 {
+        font-size: 1.125rem;
     }
 
     .md3-admin .card-body {
-        padding: 12px 16px 18px;
+        padding: 10px 16px 18px;
     }
+
+    .md3-admin .winner-card {
+        padding: 12px;
+    }
+
+    .md3-admin .toast-stack {
+        left: 12px;
+        right: 12px;
+        bottom: 12px;
+    }
+
+    #pending-banner {
+        flex-wrap: wrap;
+    }
+
+    #pending-banner #confirm-all {
+        margin-left: 32px;
+    }
+}
+
+#pending-banner > div {
+    flex: 1 1 220px;
+    min-width: 0;
 }
