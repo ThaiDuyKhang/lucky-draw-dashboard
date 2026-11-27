@@ -123,12 +123,13 @@ textarea {
     text-shadow: 0 0.07em 0 #ff4f86, 0 0.13em 0 rgba(110, 20, 90, 0.35);
 }
 
+/* Logo nằm riêng một dòng phía trên tiêu đề */
 .party-logo {
-    height: 0.9em;
-    max-width: 2.5em;
+    display: block;
+    height: clamp(28px, 6vw, 52px);
+    max-width: 180px;
     object-fit: contain;
-    vertical-align: -0.1em;
-    margin-right: 10px;
+    margin: 0 auto 12px;
 }
 
 .party-logo[hidden] {
@@ -173,12 +174,22 @@ textarea {
     aspect-ratio: 1;
 }
 
+/* Bóng đổ nằm yên (không áp filter lên phần đang xoay để chuyển động mượt) */
+.party-wheel::before {
+    content: "";
+    position: absolute;
+    inset: 3%;
+    border-radius: 50%;
+    box-shadow: 0 12px 28px rgba(60, 40, 80, 0.2);
+    pointer-events: none;
+}
+
 .party-wheel-svg {
+    position: relative;
     width: 100%;
     height: 100%;
     display: block;
     overflow: visible;
-    filter: drop-shadow(0 10px 24px rgba(60, 40, 80, 0.18));
 }
 
 .party-wheel-svg text {
@@ -198,6 +209,9 @@ textarea {
     cursor: pointer;
     -webkit-user-select: none;
     user-select: none;
+    z-index: 2;
+    will-change: transform;
+    -webkit-tap-highlight-color: transparent;
     /* vị trí & hiệu ứng nhấn: GSAP (xPercent/yPercent) trong party.js */
 }
 

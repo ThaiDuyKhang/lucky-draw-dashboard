@@ -303,7 +303,7 @@
 
   $("spin-btn").addEventListener("pointerdown", () => gsap.to(btnInner(), { scale: 0.92, duration: 0.12, transformOrigin: "50% 60%" }));
   ["pointerup", "pointerleave"].forEach((ev) =>
-    $("spin-btn").addEventListener(ev, () => gsap.to(btnInner(), { scale: 1, duration: 0.35, ease: "back.out(3)" }))
+    $("spin-btn").addEventListener(ev, () => gsap.to(btnInner(), { scale: 1, duration: 0.25, ease: "power2.out" }))
   );
 
   // ---------- Quay ----------
@@ -353,20 +353,12 @@
     }
 
     const rot = $("wheel-rot");
-    let lastSlice = -1;
     gsap.to(wheelState, {
       deg: end,
       duration,
       ease: "power4.out",
       onUpdate() {
         gsap.set(rot, { rotation: wheelState.deg, svgOrigin: "500 500" });
-        // Nút quay "giật" nhẹ mỗi khi mũi tên lướt qua 1 ô
-        const at = ((wheelState.deg % 360) + 360) % 360;
-        const s = Math.floor(((360 - at) % 360) / step);
-        if (s !== lastSlice) {
-          lastSlice = s;
-          gsap.fromTo(btnInner(), { rotation: -7 }, { rotation: 0, duration: 0.22, ease: "power2.out", transformOrigin: "50% 60%", overwrite: "auto" });
-        }
       },
       onComplete() {
         wheelState.deg = end;
