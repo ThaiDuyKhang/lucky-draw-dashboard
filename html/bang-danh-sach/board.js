@@ -71,8 +71,30 @@
         </div>`;
     }
     if (!html) html = `<div class="empty">Chưa có người trúng thưởng</div>`;
+    const firstRender = knownWinnerIds === null;
     $("winners").innerHTML = html;
     knownWinnerIds = new Set(winners.map((w) => w.id));
+    animateWinners(firstRender);
+  }
+
+  // GSAP: lần đầu các nhóm giải trượt vào; người trúng mới bật lên, sáng vàng rồi dịu lại
+  function animateWinners(firstRender) {
+    if (!window.gsap) return;
+    if (firstRender) {
+      gsap.from("#winners .prize-group", { y: 24, autoAlpha: 0, duration: 0.5, stagger: 0.08, ease: "power2.out", clearProps: "all" });
+      return;
+    }
+    const fresh = document.querySelectorAll("#winners li.new");
+    if (!fresh.length) return;
+    const box = $("winners");
+    const first = fresh[0];
+    gsap.to(box, { scrollTop: Math.max(0, first.offsetTop - box.clientHeight / 3), duration: 0.8, ease: "power2.inOut" });
+    gsap.timeline()
+      .fromTo(fresh, { scale: 0.4, autoAlpha: 0 }, { scale: 1.12, autoAlpha: 1, duration: 0.45, ease: "back.out(2.6)", stagger: 0.12 })
+      .to(fresh, { scale: 1, duration: 0.35, ease: "power2.out" })
+      .fromTo(fresh, { backgroundColor: "#ffc107", boxShadow: "0 0 0 6px rgba(255,193,7,.45)" },
+        { backgroundColor: "#f6fbf8", boxShadow: "0 0 0 0 rgba(255,193,7,0)", duration: 2.2, ease: "power1.out", clearProps: "backgroundColor,boxShadow,transform" }, "<");
+    fresh.forEach((li) => gsap.fromTo(li.querySelector(".num"), { rotation: -360 }, { rotation: 0, duration: 0.8, ease: "back.out(1.6)" }));
   }
 
   function renderParticipants() {
@@ -101,7 +123,10 @@
       if (max <= 0) return;
       if (el.scrollTop >= max - 1) {
         pauseUntil = Date.now() + 6000;
-        setTimeout(() => (el.scrollTop = 0), 3000);
+        setTimeout(() => {
+          if (window.gsap) gsap.to(el, { scrollTop: 0, duration: 1.2, ease: "power2.inOut" });
+          else el.scrollTop = 0;
+        }, 3000);
         return;
       }
       el.scrollTop += 1;

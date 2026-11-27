@@ -9,11 +9,15 @@ $(function () {
   function showToast(message, type = "info") {
     const colors = { success: "#198754", danger: "#dc3545", warning: "#ffc107", info: "#246d4b" };
     const toast = $('<div class="toast-notification"></div>')
+      .addClass("toast-" + type)
       .css({ background: colors[type] || colors.info, color: type === "warning" ? "#212529" : "#fff" })
       .text(message);
     $(".toast-stack").length || $("body").append('<div class="toast-stack"></div>');
     $(".toast-stack").append(toast);
-    setTimeout(() => toast.fadeOut(300, () => toast.remove()), type === "danger" ? 7000 : 3500);
+    // Snackbar trượt vào / ra bằng GSAP
+    gsap.timeline({ onComplete: () => toast.remove() })
+      .from(toast[0], { x: 40, autoAlpha: 0, duration: 0.35, ease: "power3.out" })
+      .to(toast[0], { x: 40, autoAlpha: 0, duration: 0.3, ease: "power2.in" }, "+=" + (type === "danger" ? 6.6 : 3.1));
   }
 
   function loading(on) {

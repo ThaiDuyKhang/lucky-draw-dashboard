@@ -233,9 +233,7 @@ h1.main-title {
 .custom-wheel {
     width: 100%;
     height: 100%;
-    transition: transform 5s cubic-bezier(0.17, 0.67, 0.14, 1);
-    transform: rotate(0deg);
-    position: relative;
+    position: relative; /* xoay bằng GSAP trong script.js */
     filter: drop-shadow(0 0 1.75rem rgb(255, 255, 255));
 }
 
@@ -287,7 +285,7 @@ h1.main-title {
     width: 100%;
     height: 100%;
     border-radius: 50%;
-    transition: all 0.3s ease;
+    /* nhịp đập + rung khi quay: GSAP trong script.js */
 }
 
 /* Coupon styles */
@@ -402,9 +400,7 @@ h1.main-title {
 }
 
 /* Animation khi spinning */
-.spinning .spin-button-image {
-    animation: pulse 0.5s infinite alternate;
-}
+/* (hiệu ứng nhịp đập khi quay đã chuyển sang GSAP) */
 
 @keyframes pulse {
     from {
