@@ -50,6 +50,8 @@
                     type="button"><i class="li icon-mail"></i> Email &amp; Google Sheet</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-theme"
                     type="button"><i class="li icon-palette"></i> Giao diện</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-brand"
+                    type="button"><i class="li icon-badge-check"></i> Thương hiệu</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-party"
                     type="button"><i class="li icon-party-popper"></i> Party</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-data"
@@ -306,7 +308,40 @@
 
             <!-- ================= GIAO DIỆN ================= -->
             <div class="tab-pane fade" id="tab-theme">
-                <div class="card shadow-sm mb-4">
+                <div class="card shadow-sm">
+                    <div class="card-header text-white">
+                        <h5 class="mb-0">Tuỳ chỉnh giao diện</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="small text-muted">Áp dụng ngay cho vòng quay và bảng danh sách trên mọi máy đang mở.
+                            Ảnh được tự thu nhỏ trước khi tải lên.</p>
+                        <h6 class="theme-section-title">Hình ảnh</h6>
+                        <div class="row g-3 mb-4" id="theme-images"></div>
+
+                        <h6 class="theme-section-title">Màu vòng quay</h6>
+                        <div class="row g-4 align-items-center">
+                            <div class="col-md-7">
+                                <div class="mb-3">
+                                    <div class="small fw-semibold mb-2">Bảng màu có sẵn</div>
+                                    <div class="d-flex flex-wrap gap-2" id="theme-presets"></div>
+                                </div>
+                                <div class="row g-2" id="theme-colors"></div>
+                                <button type="button" class="btn btn-sm btn-outline-dark mt-3" id="reset-theme-colors">
+                                    <i class="li icon-rotate-ccw"></i> Màu mặc định
+                                </button>
+                            </div>
+                            <div class="col-md-5 text-center">
+                                <svg id="theme-preview" viewBox="0 0 500 500" class="theme-preview"></svg>
+                                <div class="small text-muted">Xem trước</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= THƯƠNG HIỆU ================= -->
+            <div class="tab-pane fade" id="tab-brand">
+                <div class="card shadow-sm">
                     <div class="card-header text-white d-flex align-items-center">
                         <h5 class="mb-0 me-auto">Thương hiệu</h5>
                         <button type="button" class="btn btn-sm btn-outline-light" id="reset-branding"><i
@@ -360,36 +395,6 @@
                         </div>
                         <h6 class="theme-section-title mt-4">Hình ảnh thương hiệu</h6>
                         <div class="row g-3" id="brand-images"></div>
-                    </div>
-                </div>
-
-                <div class="card shadow-sm">
-                    <div class="card-header text-white">
-                        <h5 class="mb-0">Tuỳ chỉnh giao diện</h5>
-                    </div>
-                    <div class="card-body">
-                        <p class="small text-muted">Áp dụng ngay cho vòng quay và bảng danh sách trên mọi máy đang mở.
-                            Ảnh được tự thu nhỏ trước khi tải lên.</p>
-                        <h6 class="theme-section-title">Hình ảnh</h6>
-                        <div class="row g-3 mb-4" id="theme-images"></div>
-
-                        <h6 class="theme-section-title">Màu vòng quay</h6>
-                        <div class="row g-4 align-items-center">
-                            <div class="col-md-7">
-                                <div class="mb-3">
-                                    <div class="small fw-semibold mb-2">Bảng màu có sẵn</div>
-                                    <div class="d-flex flex-wrap gap-2" id="theme-presets"></div>
-                                </div>
-                                <div class="row g-2" id="theme-colors"></div>
-                                <button type="button" class="btn btn-sm btn-outline-dark mt-3" id="reset-theme-colors">
-                                    <i class="li icon-rotate-ccw"></i> Màu mặc định
-                                </button>
-                            </div>
-                            <div class="col-md-5 text-center">
-                                <svg id="theme-preview" viewBox="0 0 500 500" class="theme-preview"></svg>
-                                <div class="small text-muted">Xem trước</div>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
