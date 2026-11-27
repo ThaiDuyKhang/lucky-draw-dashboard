@@ -91,6 +91,7 @@ $(function () {
     renderPrizes();
     renderScriptStatus();
     renderThemeImages();
+    renderParty();
     if (!formsFilled) {
       fillSettingsForms();
       formsFilled = true;
@@ -920,6 +921,173 @@ $(function () {
     if (typed !== "XOA") return showToast("Chưa gõ XOA, đã huỷ thao tác", "warning");
     run("resetAllData", { confirm: "XOA" }, "Đã xoá toàn bộ người tham dự và người trúng thưởng");
   });
+
+  // ==================== CHẾ ĐỘ PARTY ====================
+  let previewAudio = null;
+
+  function renderParty() {
+    const party = state.party;
+
+    // Âm thanh: "Mặc định" có sẵn trong web + âm thanh admin tải lên
+    const sounds = [{ id: "", name: "Mặc định (có sẵn)", builtin: true }, ...party.sounds];
+    $("#party-sounds").html(
+      sounds
+        .map((s) => {
+          const isDefault = (party.defaultSoundId || "") === s.id;
+          return `
+          <div class="party-sound-row" data-id="${esc(s.id)}">
+            <button type="button" class="btn btn-sm btn-light ps-play" title="Nghe thử"><i class="li icon-volume-2"></i></button>
+            <div class="name">${esc(s.name)}${s.winId ? ' <span class="badge text-bg-light border">+ âm thanh kết quả</span>' : ""}</div>
+            ${isDefault ? '<span class="badge text-bg-success">Mặc định</span>' : '<button type="button" class="btn btn-sm btn-outline-success ps-default">Đặt mặc định</button>'}
+            ${s.builtin ? "" : '<button type="button" class="btn btn-sm btn-link text-danger p-1 ps-delete" title="Xoá"><i class="li icon-trash-2"></i></button>'}
+          </div>`;
+        })
+        .join("")
+    );
+
+    // Hình nền
+    const bgs = [{ id: "", name: "Pastel (có sẵn)", builtin: true }, ...party.backgrounds];
+    $("#party-backgrounds").html(
+      bgs
+        .map((b) => {
+          const isDefault = (party.defaultBackgroundId || "") === b.id;
+          const style = b.builtin
+            ? "background-image:radial-gradient(circle at 20% 10%, #fff7e6 0%, #fdeff4 45%, #eaf4ff 100%)"
+            : `background-image:url('${Api.imageUrl(b.imageId)}')`;
+          return `
+          <div class="col-6">
+            <div class="party-tile ${isDefault ? "active" : ""}" data-id="${esc(b.id)}" data-kind="background">
+              <div class="party-tile-preview" style="${style}"></div>
+              <div class="name">${esc(b.name)}</div>
+              <div class="d-flex gap-1">
+                ${isDefault ? '<span class="badge text-bg-success align-self-center me-auto">Mặc định</span>' : '<button type="button" class="btn btn-sm btn-outline-success me-auto pt-default">Đặt mặc định</button>'}
+                ${b.builtin ? "" : '<button type="button" class="btn btn-sm btn-link text-danger p-1 pt-delete" title="Xoá"><i class="li icon-trash-2"></i></button>'}
+              </div>
+            </div>
+          </div>`;
+        })
+        .join("")
+    );
+
+    // Nút quay
+    const defaultBtnSvg = `<svg class="party-default-btn" viewBox="0 0 200 250"><path d="M100 6 C108 30 122 52 140 72 A88 88 0 1 1 60 72 C78 52 92 30 100 6 Z"/><text x="100" y="150"><tspan x="100" dy="-12">Nhấn để</tspan><tspan x="100" dy="34">xoay</tspan></text></svg>`;
+    const buttons = [{ id: "", name: "Nhấn để xoay (có sẵn)", builtin: true }, ...party.buttons];
+    $("#party-buttons").html(
+      buttons
+        .map((b) => {
+          const active = (party.activeButtonId || "") === b.id;
+          return `
+          <div class="col-6">
+            <div class="party-tile ${active ? "active" : ""}" data-id="${esc(b.id)}" data-kind="button">
+              <div class="party-tile-preview">${b.builtin ? defaultBtnSvg : `<img src="${Api.imageUrl(b.imageId)}" alt="">`}</div>
+              <div class="name">${esc(b.name)}</div>
+              <div class="d-flex gap-1">
+                ${active ? '<span class="badge text-bg-success align-self-center me-auto">Đang dùng</span>' : '<button type="button" class="btn btn-sm btn-outline-success me-auto pt-use">Dùng nút này</button>'}
+                ${b.builtin ? "" : '<button type="button" class="btn btn-sm btn-link text-danger p-1 pt-delete" title="Xoá"><i class="li icon-trash-2"></i></button>'}
+              </div>
+            </div>
+          </div>`;
+        })
+        .join("")
+    );
+  }
+
+  $("#party-sounds")
+    .on("click", ".ps-play", function () {
+      const id = $(this).closest(".party-sound-row").data("id");
+      const s = state.party.sounds.find((x) => x.id === id);
+      const url = s ? Api.audioUrl(s.spinId) : "/sound/am-thanh-vong-quay.mp3";
+      const wasPlaying = previewAudio && previewAudio.dataset.src === url && !previewAudio.paused;
+      if (previewAudio) previewAudio.pause();
+      if (wasPlaying) return; // bấm lần 2 = dừng
+      previewAudio = new Audio(url);
+      previewAudio.dataset.src = url;
+      previewAudio.play().catch((e) => showToast("Không phát được âm thanh: " + e.message, "danger"));
+    })
+    .on("click", ".ps-default", function () {
+      run("setPartyDefaults", { defaultSoundId: $(this).closest(".party-sound-row").data("id") || null }, "Đã đặt âm thanh mặc định");
+    })
+    .on("click", ".ps-delete", async function () {
+      const s = state.party.sounds.find((x) => x.id === $(this).closest(".party-sound-row").data("id"));
+      const ok = await confirmDialog({
+        title: "Xoá âm thanh",
+        html: `Xoá âm thanh <strong>${esc(s.name)}</strong>?`,
+        buttons: [{ value: true, label: "Xoá", cls: "btn-danger" }],
+      });
+      if (ok) run("deletePartySound", { id: s.id }, "Đã xoá âm thanh");
+    });
+
+  $("#party-sound-form").on("submit", async function (e) {
+    e.preventDefault();
+    const spinFile = $("#party-sound-spin")[0].files[0];
+    const winFile = $("#party-sound-win")[0].files[0];
+    if (!spinFile) return showToast("Vui lòng chọn âm thanh khi quay", "warning");
+    loading(true);
+    try {
+      const spin = await Api.uploadAudio(spinFile);
+      const win = winFile ? await Api.uploadAudio(winFile) : null;
+      const res = await Api.action("savePartySound", {
+        sound: { name: $("#party-sound-name").val(), spinId: spin.id, winId: win ? win.id : null },
+      });
+      setState(res.state);
+      this.reset();
+      showToast("Đã thêm âm thanh", "success");
+    } catch (err) {
+      showToast(err.message, "danger");
+    } finally {
+      loading(false);
+    }
+  });
+
+  async function addPartyImage(form, kind, nameSel, fileSel, opts) {
+    const file = $(fileSel)[0].files[0];
+    if (!file) return showToast("Vui lòng chọn ảnh", "warning");
+    loading(true);
+    try {
+      const blob = await Api.prepareImage(file, opts);
+      const up = await Api.uploadImage(blob);
+      const res = await Api.action("savePartyImage", { kind, item: { name: $(nameSel).val(), imageId: up.id } });
+      setState(res.state);
+      form.reset();
+      showToast(kind === "button" ? "Đã thêm nút quay" : "Đã thêm hình nền", "success");
+    } catch (err) {
+      showToast(err.message, "danger");
+    } finally {
+      loading(false);
+    }
+  }
+
+  $("#party-bg-form").on("submit", function (e) {
+    e.preventDefault();
+    addPartyImage(this, "background", "#party-bg-name", "#party-bg-file", { maxWidth: 1920, maxHeight: 1920, opaque: true });
+  });
+
+  $("#party-button-form").on("submit", function (e) {
+    e.preventDefault();
+    addPartyImage(this, "button", "#party-button-name", "#party-button-file", { maxWidth: 600, maxHeight: 600 });
+  });
+
+  $("#tab-party")
+    .on("click", ".pt-default", function () {
+      run("setPartyDefaults", { defaultBackgroundId: $(this).closest(".party-tile").data("id") || null }, "Đã đặt hình nền mặc định");
+    })
+    .on("click", ".pt-use", function () {
+      run("setPartyDefaults", { activeButtonId: $(this).closest(".party-tile").data("id") || null }, "Đã đổi nút quay");
+    })
+    .on("click", ".pt-delete", async function () {
+      const tile = $(this).closest(".party-tile");
+      const kind = tile.data("kind");
+      const list = kind === "button" ? state.party.buttons : state.party.backgrounds;
+      const item = list.find((x) => x.id === tile.data("id"));
+      const ok = await confirmDialog({
+        title: kind === "button" ? "Xoá nút quay" : "Xoá hình nền",
+        html: `Xoá <strong>${esc(item.name)}</strong>?`,
+        buttons: [{ value: true, label: "Xoá", cls: "btn-danger" }],
+      });
+      if (ok) run("deletePartyImage", { kind, id: item.id }, "Đã xoá");
+    });
+
+  $("#copy-party-link").on("click", () => copyText(location.origin + "/party/", null));
 
   // ==================== ỦNG HỘ TÁC GIẢ ====================
   const SUPPORT = { bank: "MB", account: "6006101991", name: "THAI DUY KHANG", note: "Ung ho tac gia" };

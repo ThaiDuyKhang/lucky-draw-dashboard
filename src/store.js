@@ -8,6 +8,9 @@ const STATE_KEY = "state";
 const MAX_PARTICIPANTS = 5000;
 const MAX_IMAGE_BYTES = 1900 * 1024; // giới hạn 1 giá trị trong storage ~2MB
 const MAX_REVEAL_DELAY = 60000;
+const MAX_AUDIO_BYTES = 8 * 1024 * 1024; // âm thanh chế độ Party: tối đa 8MB
+const AUDIO_CHUNK = 1024 * 1024; // lưu chia khối 1MB (mỗi giá trị storage tối đa ~2MB)
+const ID_RE = /^[a-z0-9]{6,32}$/;
 
 export const DEFAULT_COLORS = {
   segment1: "#f3ffe1",
@@ -48,6 +51,15 @@ function defaultState() {
     theme: {
       colors: { ...DEFAULT_COLORS },
       images: { background: null, title: null, arrow: null, frame: null },
+    },
+    // Chế độ Party: âm thanh / hình nền / nút quay do admin tải lên để người chơi chọn
+    party: {
+      sounds: [], // { id, name, spinId, winId }
+      backgrounds: [], // { id, name, imageId }
+      buttons: [], // { id, name, imageId }
+      defaultSoundId: null,
+      defaultBackgroundId: null,
+      activeButtonId: null, // null = nút mặc định "Nhấn để xoay"
     },
     settings: {
       eventName: "Vòng quay may mắn",
@@ -124,6 +136,7 @@ export class LuckyDrawStore extends DurableObject {
               colors: { ...base.theme.colors, ...(saved.theme?.colors || {}) },
               images: { ...base.theme.images, ...(saved.theme?.images || {}) },
             },
+            party: { ...base.party, ...(saved.party || {}) },
             settings: {
               ...base.settings,
               ...(saved.settings || {}),
@@ -264,6 +277,61 @@ export class LuckyDrawStore extends DurableObject {
     return { ...s, prizes: this.prizesWithRemaining(), serverTime: Date.now() };
   }
 
+  // Cấu hình công khai cho trang /party/
+  async getPartyConfig() {
+    const p = (await this.load()).party;
+    return {
+      sounds: p.sounds.map((x) => ({ id: x.id, name: x.name, spinId: x.spinId, winId: x.winId || null })),
+      backgrounds: p.backgrounds.map((x) => ({ id: x.id, name: x.name, imageId: x.imageId })),
+      button: p.buttons.find((b) => b.id === p.activeButtonId) || null,
+      defaultSoundId: p.defaultSoundId,
+      defaultBackgroundId: p.defaultBackgroundId,
+    };
+  }
+
+  // ---------- Âm thanh (lưu chia khối) ----------
+  async uploadAudio(bytes, contentType) {
+    if (!/^audio\/(mpeg|mp3|mp4|x-m4a|aac|ogg|wav|x-wav|wave|webm)$/.test(contentType || "")) {
+      return { ok: false, error: "Định dạng âm thanh không hỗ trợ (dùng MP3, M4A, OGG, WAV)" };
+    }
+    if (!bytes || bytes.byteLength === 0) return { ok: false, error: "File âm thanh rỗng" };
+    if (bytes.byteLength > MAX_AUDIO_BYTES) return { ok: false, error: "File âm thanh quá lớn (tối đa 8MB)" };
+    const id = randomId(16);
+    const chunks = Math.ceil(bytes.byteLength / AUDIO_CHUNK);
+    const entries = { ["aud:" + id]: { type: contentType, size: bytes.byteLength, chunks } };
+    for (let i = 0; i < chunks; i++) {
+      entries[`aud:${id}:${i}`] = bytes.slice(i * AUDIO_CHUNK, (i + 1) * AUDIO_CHUNK);
+    }
+    await this.ctx.storage.put(entries);
+    return { ok: true, id };
+  }
+
+  async getAudio(id) {
+    if (!ID_RE.test(id || "")) return null;
+    const meta = await this.ctx.storage.get("aud:" + id);
+    if (!meta) return null;
+    const keys = Array.from({ length: meta.chunks }, (_, i) => `aud:${id}:${i}`);
+    const parts = await this.ctx.storage.get(keys);
+    const out = new Uint8Array(meta.size);
+    let offset = 0;
+    for (const key of keys) {
+      const part = new Uint8Array(parts.get(key));
+      out.set(part, offset);
+      offset += part.byteLength;
+    }
+    return { type: meta.type, data: out.buffer };
+  }
+
+  async deleteAudioIfUnused(id) {
+    if (!id) return;
+    const used = this.state.party.sounds.some((s) => s.spinId === id || s.winId === id);
+    if (used) return;
+    const meta = await this.ctx.storage.get("aud:" + id);
+    if (!meta) return;
+    const keys = ["aud:" + id, ...Array.from({ length: meta.chunks }, (_, i) => `aud:${id}:${i}`)];
+    await this.ctx.storage.delete(keys);
+  }
+
   async getImage(id) {
     if (!/^[a-z0-9]{6,32}$/.test(id || "")) return null;
     return (await this.ctx.storage.get("img:" + id)) || null;
@@ -304,6 +372,8 @@ export class LuckyDrawStore extends DurableObject {
     const used =
       Object.values(s.theme.images).includes(id) ||
       s.prizes.some((p) => p.imageId === id) ||
+      s.party.backgrounds.some((b) => b.imageId === id) ||
+      s.party.buttons.some((b) => b.imageId === id) ||
       s.winners.some((w) => w.prize?.imageId === id);
     if (!used) await this.ctx.storage.delete("img:" + id);
   }
@@ -654,6 +724,94 @@ export class LuckyDrawStore extends DurableObject {
         });
         if (!res.ok) fail(res.error);
         return { message: `Đã đồng bộ: ${s.participants.length} người tham dự, ${s.winners.length} người trúng` };
+      },
+
+      // ----- Chế độ Party -----
+      async savePartySound({ sound }) {
+        const party = this.state.party;
+        const name = cleanText(sound?.name, 60);
+        if (!name) fail("Vui lòng nhập tên âm thanh");
+        const spinId = ID_RE.test(sound?.spinId || "") ? sound.spinId : null;
+        const winId = ID_RE.test(sound?.winId || "") ? sound.winId : null;
+        if (!spinId) fail("Vui lòng tải lên âm thanh khi quay");
+        const removed = [];
+        if (sound.id) {
+          const cur = party.sounds.find((x) => x.id === sound.id);
+          if (!cur) fail("Không tìm thấy âm thanh");
+          if (cur.spinId !== spinId) removed.push(cur.spinId);
+          if (cur.winId && cur.winId !== winId) removed.push(cur.winId);
+          Object.assign(cur, { name, spinId, winId });
+        } else {
+          const created = { id: randomId(), name, spinId, winId };
+          party.sounds.push(created);
+          if (!party.defaultSoundId) party.defaultSoundId = created.id;
+        }
+        for (const id of removed) await this.deleteAudioIfUnused(id);
+        await this.save();
+      },
+
+      async deletePartySound({ id }) {
+        const party = this.state.party;
+        const cur = party.sounds.find((x) => x.id === id);
+        if (!cur) fail("Không tìm thấy âm thanh");
+        party.sounds = party.sounds.filter((x) => x !== cur);
+        if (party.defaultSoundId === id) party.defaultSoundId = party.sounds[0]?.id || null;
+        await this.deleteAudioIfUnused(cur.spinId);
+        await this.deleteAudioIfUnused(cur.winId);
+        await this.save();
+      },
+
+      async savePartyImage({ kind, item }) {
+        const party = this.state.party;
+        const list = kind === "button" ? party.buttons : kind === "background" ? party.backgrounds : null;
+        if (!list) fail("Loại không hợp lệ");
+        const name = cleanText(item?.name, 60);
+        if (!name) fail("Vui lòng nhập tên");
+        const imageId = ID_RE.test(item?.imageId || "") ? item.imageId : null;
+        if (!imageId) fail("Vui lòng chọn ảnh");
+        let oldImage = null;
+        if (item.id) {
+          const cur = list.find((x) => x.id === item.id);
+          if (!cur) fail("Không tìm thấy");
+          if (cur.imageId !== imageId) oldImage = cur.imageId;
+          Object.assign(cur, { name, imageId });
+        } else {
+          const created = { id: randomId(), name, imageId };
+          list.push(created);
+          if (kind === "background" && !party.defaultBackgroundId) party.defaultBackgroundId = created.id;
+        }
+        await this.deleteImageIfUnused(oldImage);
+        await this.save();
+      },
+
+      async deletePartyImage({ kind, id }) {
+        const party = this.state.party;
+        const key = kind === "button" ? "buttons" : kind === "background" ? "backgrounds" : null;
+        if (!key) fail("Loại không hợp lệ");
+        const cur = party[key].find((x) => x.id === id);
+        if (!cur) fail("Không tìm thấy");
+        party[key] = party[key].filter((x) => x !== cur);
+        if (party.defaultBackgroundId === id) party.defaultBackgroundId = party.backgrounds[0]?.id || null;
+        if (party.activeButtonId === id) party.activeButtonId = null;
+        await this.deleteImageIfUnused(cur.imageId);
+        await this.save();
+      },
+
+      async setPartyDefaults(body) {
+        const party = this.state.party;
+        if ("defaultSoundId" in body) {
+          if (body.defaultSoundId && !party.sounds.some((x) => x.id === body.defaultSoundId)) fail("Không tìm thấy âm thanh");
+          party.defaultSoundId = body.defaultSoundId || null;
+        }
+        if ("defaultBackgroundId" in body) {
+          if (body.defaultBackgroundId && !party.backgrounds.some((x) => x.id === body.defaultBackgroundId)) fail("Không tìm thấy hình nền");
+          party.defaultBackgroundId = body.defaultBackgroundId || null;
+        }
+        if ("activeButtonId" in body) {
+          if (body.activeButtonId && !party.buttons.some((x) => x.id === body.activeButtonId)) fail("Không tìm thấy nút quay");
+          party.activeButtonId = body.activeButtonId || null;
+        }
+        await this.save();
       },
 
       // ----- Giao diện -----

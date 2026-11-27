@@ -79,6 +79,32 @@ function cookie(value, maxAgeSec, secure) {
   return `${SESSION_COOKIE}=${value}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAgeSec}${secure ? "; Secure" : ""}`;
 }
 
+// Trả file theo dải byte (Safari / iOS cần Range để phát âm thanh)
+function rangeResponse(request, file) {
+  const size = file.data.byteLength;
+  const headers = {
+    "Content-Type": file.type,
+    "Accept-Ranges": "bytes",
+    "Cache-Control": "public, max-age=31536000, immutable",
+    "X-Content-Type-Options": "nosniff",
+  };
+  const range = (request.headers.get("Range") || "").match(/^bytes=(\d*)-(\d*)$/);
+  if (range && (range[1] || range[2])) {
+    let start = range[1] ? Number(range[1]) : size - Number(range[2]);
+    let end = range[1] && range[2] ? Number(range[2]) : size - 1;
+    start = Math.max(0, start);
+    end = Math.min(size - 1, end);
+    if (start > end) {
+      return new Response(null, { status: 416, headers: { "Content-Range": `bytes */${size}` } });
+    }
+    return new Response(file.data.slice(start, end + 1), {
+      status: 206,
+      headers: { ...headers, "Content-Range": `bytes ${start}-${end}/${size}`, "Content-Length": String(end - start + 1) },
+    });
+  }
+  return new Response(file.data, { headers: { ...headers, "Content-Length": String(size) } });
+}
+
 // ---------- API ----------
 async function handleApi(request, env, url) {
   const path = url.pathname;
@@ -88,6 +114,17 @@ async function handleApi(request, env, url) {
 
   if (path === "/api/state" && method === "GET") {
     return json(await stub.getPublicState());
+  }
+
+  if (path === "/api/party" && method === "GET") {
+    return json(await stub.getPartyConfig());
+  }
+
+  const aud = path.match(/^\/api\/audio\/([a-z0-9]{6,32})$/);
+  if (aud && method === "GET") {
+    const audio = await stub.getAudio(aud[1]);
+    if (!audio) return new Response("Not found", { status: 404 });
+    return rangeResponse(request, audio);
   }
 
   if (path === "/api/live") {
@@ -147,6 +184,11 @@ async function handleApi(request, env, url) {
 
     if (action === "state" && method === "GET") {
       return json(await stub.getAdminState());
+    }
+    if (action === "audio" && method === "POST") {
+      const type = (request.headers.get("Content-Type") || "").split(";")[0].trim();
+      const result = await stub.uploadAudio(await request.arrayBuffer(), type);
+      return json(result, result.ok ? 200 : 400);
     }
     if (action === "image" && method === "POST") {
       const type = (request.headers.get("Content-Type") || "").split(";")[0].trim();

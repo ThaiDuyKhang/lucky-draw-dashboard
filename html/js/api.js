@@ -59,6 +59,15 @@
     // Thao tác admin: trả về { ok, state, ... }
     action: (name, body = {}) => request("POST", "/api/admin/" + name, body),
     uploadImage: (blob) => request("POST", "/api/admin/image", blob),
+    uploadAudio: (file) => {
+      // Một số trình duyệt không gắn kiểu file -> đoán theo đuôi
+      const ext = (file.name || "").split(".").pop().toLowerCase();
+      const byExt = { mp3: "audio/mpeg", m4a: "audio/mp4", aac: "audio/aac", ogg: "audio/ogg", wav: "audio/wav", webm: "audio/webm" };
+      const type = file.type && file.type.startsWith("audio/") ? file.type : byExt[ext] || file.type;
+      if (file.size > 8 * 1024 * 1024) return Promise.reject(new Error("File âm thanh quá lớn (tối đa 8MB)"));
+      return request("POST", "/api/admin/audio", new Blob([file], { type }));
+    },
+    audioUrl: (id) => "/api/audio/" + id,
     logout: () => request("POST", "/api/logout", {}),
     imageUrl: (id, key) => (id ? "/api/image/" + id : DEFAULT_IMAGES[key] || ""),
     DEFAULT_IMAGES,
