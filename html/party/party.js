@@ -87,6 +87,7 @@
     const maxChars = Math.max(6, Math.floor((R * 0.72) / (fontSize * 0.55)));
     let html = "";
     names.forEach((name, i) => {
+      html += `<g class="slice" data-i="${i}">`;
       const [bg, fg] = colors[i];
       slices[i].color = bg;
       slices[i].text = fg;
@@ -108,6 +109,7 @@
       const ty = C + (R - RIM - 18) * Math.sin((mid - 90) * (Math.PI / 180));
       // Chữ chạy từ mép ngoài vào tâm (giống vòng quay mẫu)
       html += `<text x="${tx}" y="${ty}" fill="${fg}" font-size="${fontSize}" text-anchor="start" dominant-baseline="central" transform="rotate(${mid + 90}, ${tx}, ${ty})">${esc(label)}</text>`;
+      html += `</g>`;
     });
     svg.innerHTML = `<g id="wheel-rot" style="transform:rotate(${rotation}deg)">${html}</g>`;
   }
@@ -122,11 +124,13 @@
   }
 
   function setNames(names, updateInput = true) {
+    const changed = names.join("\n") !== prefs.names.join("\n");
     prefs.names = names;
+    if (changed || updateInput) clearResult();
     if (updateInput) $("names-input").value = names.join("\n");
     $("name-count").textContent = names.length;
     persist();
-    if (!spinning) drawWheel();
+    if (!spinning && (changed || !$("wheel-rot"))) drawWheel();
   }
 
   let inputTimer = null;
@@ -251,6 +255,7 @@
     }
     if (document.activeElement === $("names-input")) $("names-input").blur();
     setNames(names, false);
+    clearResult();
     const n = slices.length;
     const step = 360 / n;
     const index = randomInt(n);
@@ -274,8 +279,12 @@
 
     // Xoay nhóm hình bên trong SVG (không xoay cả khung -> trang không bị tràn ngang)
     const rot = $("wheel-rot");
-    rot.style.transition = `transform ${SPIN_MS}ms cubic-bezier(0.12, 0.75, 0.18, 1)`;
-    rot.style.transform = `rotate(${rotation}deg)`;
+    rot.style.transition = "none";
+    void rot.getBoundingClientRect(); // để trình duyệt ghi nhận góc hiện tại trước khi chạy hiệu ứng
+    requestAnimationFrame(() => {
+      rot.style.transition = `transform ${SPIN_MS}ms cubic-bezier(0.12, 0.75, 0.18, 1)`;
+      rot.style.transform = `rotate(${rotation}deg)`;
+    });
 
     // Giảm dần âm lượng ở giây cuối
     const fadeStart = SPIN_MS - 1200;
@@ -299,61 +308,44 @@
     }, SPIN_MS + 150);
   }
 
+  // Kết quả: làm mờ các ô khác, ô trúng nhấp nháy nhẹ, thẻ tên dưới tâm vòng quay
   function showResult(index) {
     const slice = slices[index];
     lastWinner = index;
-    const el = $("result-name");
-    el.textContent = slice.name;
-    el.style.background = slice.color;
-    el.style.color = slice.text;
-    $("result").hidden = false;
+    const svg = $("wheel-svg");
+    svg.classList.add("has-result");
+    svg.querySelectorAll(".slice").forEach((g) => g.classList.toggle("win", Number(g.dataset.i) === index));
+    const card = $("result");
+    $("result-name").textContent = slice.name;
+    $("result-name").style.background = slice.color;
+    $("result-name").style.color = slice.text;
+    card.style.borderColor = slice.text;
+    card.hidden = false;
     if (!prefs.muted && winAudio) {
       winAudio.currentTime = 0;
       winAudio.volume = 0.8;
       winAudio.play().catch(() => {});
     }
-    playConfetti();
   }
 
-  function closeResult() {
+  function clearResult() {
+    lastWinner = null;
     $("result").hidden = true;
-    $("confetti").innerHTML = "";
-    if (winAudio) winAudio.pause();
+    const svg = $("wheel-svg");
+    svg.classList.remove("has-result");
+    svg.querySelectorAll(".slice.win").forEach((g) => g.classList.remove("win"));
   }
 
-  $("result-close").addEventListener("click", closeResult);
-  $("result").addEventListener("click", (e) => e.target === $("result") && closeResult());
-  $("result-again").addEventListener("click", () => {
-    closeResult();
-    spin();
-  });
   $("result-remove").addEventListener("click", () => {
-    if (lastWinner !== null) {
-      const names = prefs.names.slice();
-      names.splice(lastWinner, 1);
-      setNames(names);
-    }
-    closeResult();
+    if (lastWinner === null) return;
+    const names = prefs.names.slice();
+    names.splice(lastWinner, 1);
+    setNames(names);
   });
+  $("result-close").addEventListener("click", clearResult);
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && !$("result").hidden) closeResult();
+    if (e.key === "Escape") clearResult();
   });
-
-  function playConfetti() {
-    const box = $("confetti");
-    box.innerHTML = "";
-    if (typeof lottie === "undefined" || !window.LOTTIE_DATA || !window.LOTTIE_DATA.confetti) return;
-    try {
-      lottie.loadAnimation({
-        container: box,
-        renderer: "svg",
-        loop: false,
-        autoplay: true,
-        animationData: JSON.parse(JSON.stringify(window.LOTTIE_DATA.confetti)),
-        rendererSettings: { preserveAspectRatio: "xMidYMid slice" },
-      });
-    } catch (e) {}
-  }
 
   // ---------- Toàn màn hình ----------
   const canFullscreen = document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen;
