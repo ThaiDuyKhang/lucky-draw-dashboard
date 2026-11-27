@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#fdf6ec">
+    <link rel="icon" href="/images/favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="/libs/lucide/lucide.css">
+    <link rel="stylesheet" href="/party/party.css">
+    <title>Vòng quay Party</title>
+</head>
+
+<body>
+    <div class="party-app">
+        <header class="party-top">
+            <div class="party-top-left">
+                <button type="button" class="icon-btn" id="btn-fullscreen" title="Toàn màn hình"
+                    aria-label="Toàn màn hình"><i class="li icon-maximize"></i></button>
+                <button type="button" class="icon-btn" id="btn-mute" title="Bật/tắt âm thanh"
+                    aria-label="Bật/tắt âm thanh"><i class="li icon-volume-2"></i></button>
+            </div>
+            <h1 class="party-title">Vòng quay Party</h1>
+            <div class="party-top-right"></div>
+        </header>
+
+        <main class="party-main">
+            <section class="wheel-area">
+                <div class="party-wheel" id="party-wheel">
+                    <svg class="party-wheel-svg" id="wheel-svg" viewBox="0 0 1000 1000" aria-hidden="true"></svg>
+                    <button type="button" class="spin-btn" id="spin-btn" aria-label="Nhấn để xoay">
+                        <svg class="spin-btn-default" viewBox="0 0 200 250" aria-hidden="true">
+                            <path class="spin-btn-shape"
+                                d="M100 6 C108 30 122 52 140 72 A88 88 0 1 1 60 72 C78 52 92 30 100 6 Z" />
+                            <text x="100" y="150" class="spin-btn-text">
+                                <tspan x="100" dy="-12">Nhấn để</tspan>
+                                <tspan x="100" dy="34">xoay</tspan>
+                            </text>
+                        </svg>
+                        <img class="spin-btn-image" id="spin-btn-image" alt="Nhấn để xoay" hidden>
+                    </button>
+                </div>
+
+                <div class="party-toolbar">
+                    <button type="button" class="pill" id="btn-shuffle"><i class="li icon-shuffle"></i> Trộn</button>
+                    <label class="pill pill-select"><i class="li icon-music"></i>
+                        <select id="sound-select" aria-label="Chọn âm thanh"></select>
+                    </label>
+                    <label class="pill pill-select"><i class="li icon-image"></i>
+                        <select id="bg-select" aria-label="Chọn hình nền"></select>
+                    </label>
+                </div>
+            </section>
+
+            <aside class="names-panel">
+                <div class="names-header">
+                    <h2><i class="li icon-list"></i> Danh sách <span class="count" id="name-count">0</span></h2>
+                    <div class="names-actions">
+                        <button type="button" class="link-btn" id="btn-sample">Tên mẫu</button>
+                        <button type="button" class="link-btn danger" id="btn-clear">Xoá hết</button>
+                    </div>
+                </div>
+                <textarea id="names-input" spellcheck="false" placeholder="Nhập tên, mỗi dòng một tên…&#10;Ví dụ:&#10;An&#10;Bình&#10;Chi"></textarea>
+                <p class="names-hint">Mỗi dòng là một ô trên vòng quay. Danh sách được lưu trên máy này.</p>
+            </aside>
+        </main>
+    </div>
+
+    <!-- Kết quả -->
+    <div class="result-overlay" id="result" hidden>
+        <div id="confetti" class="confetti"></div>
+        <div class="result-card" role="dialog" aria-modal="true" aria-labelledby="result-name">
+            <button type="button" class="result-close" id="result-close" aria-label="Đóng"><i
+                    class="li icon-x"></i></button>
+            <div class="result-label"><i class="li icon-party-popper"></i> Người được chọn</div>
+            <div class="result-name" id="result-name"></div>
+            <div class="result-actions">
+                <button type="button" class="btn-soft" id="result-remove"><i class="li icon-trash-2"></i> Xoá tên
+                    này</button>
+                <button type="button" class="btn-main" id="result-again"><i class="li icon-rotate-ccw"></i> Quay
+                    tiếp</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/libs/lottie.min.js"></script>
+    <script src="/images/confetti.js"></script>
+    <script src="/party/party.js"></script>
+</body>
+
+</html>
