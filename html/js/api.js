@@ -152,7 +152,7 @@
   };
 
   // Nén / thu nhỏ ảnh trước khi tải lên (giới hạn lưu trữ ~1.9MB mỗi ảnh)
-  api.prepareImage = async function (file, { maxWidth = 1600, maxHeight = 1600, opaque = false } = {}) {
+  api.prepareImage = async function (file, { maxWidth = 1600, maxHeight = 1600, opaque = false, format = null } = {}) {
     if (!file || !/^image\//.test(file.type)) throw new Error("Vui lòng chọn file ảnh (PNG, JPG, WEBP)");
     if (file.size > 25 * 1024 * 1024) throw new Error("Ảnh quá lớn (tối đa 25MB)");
     if (file.type === "image/svg+xml") {
@@ -176,7 +176,7 @@
       canvas.width = w;
       canvas.height = h;
       canvas.getContext("2d").drawImage(img, 0, 0, w, h);
-      const type = opaque ? "image/jpeg" : "image/webp";
+      const type = format || (opaque ? "image/jpeg" : "image/webp");
       for (const quality of [0.9, 0.8, 0.7, 0.6, 0.5]) {
         const blob = await new Promise((r) => canvas.toBlob(r, type, quality));
         if (blob && blob.size < 1.8 * 1024 * 1024) return blob;

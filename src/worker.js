@@ -208,6 +208,67 @@ async function handleApi(request, env, url) {
   return json({ ok: false, error: "Not found" }, 404);
 }
 
+// ---------- Thương hiệu: chèn tiêu đề, favicon, meta, logo vào mọi trang HTML ----------
+function attr(value) {
+  return String(value ?? "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function applyBranding(response, branding, origin) {
+  const siteName = branding.siteName || "Vòng Quay May Mắn";
+  const img = (id) => (id ? `${origin}/api/image/${id}` : "");
+  const favicon = img(branding.faviconId);
+  const share = img(branding.shareImageId) || img(branding.logoId);
+  let pageTitle = siteName;
+
+  return new HTMLRewriter()
+    .on("title", {
+      element(el) {
+        const page = el.getAttribute("data-page") || "";
+        pageTitle = page ? `${page} - ${siteName}` : siteName;
+        el.setInnerContent(pageTitle);
+      },
+    })
+    .on('link[rel="icon"]', {
+      element(el) {
+        if (!favicon) return;
+        el.setAttribute("href", favicon);
+        el.removeAttribute("type");
+      },
+    })
+    .on('meta[name="theme-color"]', {
+      element(el) {
+        el.remove(); // thay bằng màu trong cài đặt (chèn ở cuối <head>)
+      },
+    })
+    .on("img[data-brand-logo]", {
+      element(el) {
+        if (!branding.logoId) return;
+        el.setAttribute("src", img(branding.logoId));
+        el.setAttribute("alt", siteName);
+        el.removeAttribute("hidden");
+      },
+    })
+    .on("head", {
+      element(el) {
+        el.onEndTag((end) => {
+          const tags = [
+            `<meta name="theme-color" content="${attr(branding.themeColor || "#246d4b")}">`,
+            branding.description ? `<meta name="description" content="${attr(branding.description)}">` : "",
+            `<meta property="og:type" content="website">`,
+            `<meta property="og:site_name" content="${attr(siteName)}">`,
+            `<meta property="og:title" content="${attr(pageTitle)}">`,
+            branding.description ? `<meta property="og:description" content="${attr(branding.description)}">` : "",
+            share ? `<meta property="og:image" content="${attr(share)}">` : "",
+            `<meta name="twitter:card" content="${share ? "summary_large_image" : "summary"}">`,
+            favicon ? `<link rel="apple-touch-icon" href="${attr(favicon)}">` : "",
+          ];
+          end.before(tags.filter(Boolean).join("\n"), { html: true });
+        });
+      },
+    })
+    .transform(response);
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -222,11 +283,27 @@ export default {
       return Response.redirect(`${url.origin}/login?next=${encodeURIComponent(next)}`, 302);
     }
 
-    const response = await env.ASSETS.fetch(request);
-    // Trang HTML luôn lấy bản mới nhất sau mỗi lần deploy
-    if ((response.headers.get("Content-Type") || "").includes("text/html")) {
-      const res = new Response(response.body, response);
+    // Trang HTML được chèn thương hiệu -> bỏ hỏi cache theo ETag của file gốc
+    // (nếu không, trình duyệt nhận 304 và giữ bản cũ khi đổi thương hiệu)
+    let assetRequest = request;
+    if ((request.headers.get("Accept") || "").includes("text/html")) {
+      const headers = new Headers(request.headers);
+      headers.delete("If-None-Match");
+      headers.delete("If-Modified-Since");
+      assetRequest = new Request(request, { headers });
+    }
+    const response = await env.ASSETS.fetch(assetRequest);
+    // Trang HTML: chèn thương hiệu và luôn lấy bản mới nhất
+    if ((response.headers.get("Content-Type") || "").includes("text/html") && response.status === 200) {
+      let branding = {};
+      try {
+        branding = await store(env).getBranding();
+      } catch (e) {}
+      const res = new Response(applyBranding(response, branding, url.origin).body, response);
       res.headers.set("Cache-Control", "no-cache");
+      res.headers.delete("Content-Length");
+      res.headers.delete("ETag");
+      res.headers.delete("Last-Modified");
       return res;
     }
     return response;

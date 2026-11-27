@@ -9,7 +9,7 @@
     <link href="/libs/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/libs/lucide/lucide.css">
     <link rel="stylesheet" href="/dashboard.css">
-    <title>Dashboard - Vòng Quay May Mắn</title>
+    <title data-page="Dashboard">Dashboard - Vòng Quay May Mắn</title>
 </head>
 
 <body>
@@ -17,6 +17,7 @@
     <nav class="admin-nav">
         <div class="container d-flex align-items-center gap-2 flex-wrap">
             <div class="admin-brand me-auto">
+                <img data-brand-logo class="brand-logo" alt="" hidden>
                 <i class="li icon-settings"></i> Quản trị · <span id="nav-event-name"></span>
             </div>
             <a href="/" class="btn btn-sm btn-return"><i class="li icon-target"></i> Mở vòng quay</a>
@@ -305,6 +306,63 @@
 
             <!-- ================= GIAO DIỆN ================= -->
             <div class="tab-pane fade" id="tab-theme">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header text-white d-flex align-items-center">
+                        <h5 class="mb-0 me-auto">Thương hiệu</h5>
+                        <button type="button" class="btn btn-sm btn-outline-light" id="reset-branding"><i
+                                class="li icon-rotate-ccw"></i> Mặc định</button>
+                    </div>
+                    <div class="card-body">
+                        <p class="small text-muted">Tên website, mô tả, favicon, logo và ảnh chia sẻ áp dụng cho mọi trang
+                            (vòng quay, bảng danh sách, Party, đăng nhập, Dashboard). Khi gửi link qua Zalo / Facebook /
+                            Messenger sẽ hiện ảnh chia sẻ, tên và mô tả này.</p>
+                        <div class="row g-4">
+                            <div class="col-lg-6">
+                                <form id="branding-form">
+                                    <div class="mb-3">
+                                        <label class="form-label">Tên website (tiêu đề tab)</label>
+                                        <input type="text" class="form-control" id="brand-site-name" maxlength="80"
+                                            required>
+                                        <div class="form-text">Tab trình duyệt hiện dạng: <em>Bảng danh sách - <span
+                                                    id="brand-title-sample"></span></em></div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Mô tả (meta description)</label>
+                                        <textarea class="form-control" id="brand-description" rows="3" maxlength="300"
+                                            placeholder="Mô tả ngắn hiện trên Google và khi chia sẻ link"></textarea>
+                                        <div class="form-text"><span id="brand-desc-count">0</span>/300 ký tự · nên
+                                            dưới 160 ký tự.</div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label d-block">Màu thanh trình duyệt (điện thoại)</label>
+                                        <input type="color" class="form-control form-control-color" id="brand-theme-color">
+                                    </div>
+                                    <button type="submit" class="btn btn-return">Lưu thương hiệu</button>
+                                </form>
+                            </div>
+                            <div class="col-lg-6">
+                                <div class="small fw-semibold mb-2">Xem trước trên Google</div>
+                                <div class="serp-preview mb-3">
+                                    <div class="serp-site"><img id="serp-favicon" alt=""><span id="serp-host"></span></div>
+                                    <div class="serp-title" id="serp-title"></div>
+                                    <div class="serp-desc" id="serp-desc"></div>
+                                </div>
+                                <div class="small fw-semibold mb-2">Xem trước khi chia sẻ link</div>
+                                <div class="share-preview">
+                                    <div class="share-image" id="share-image"><span>Chưa có ảnh chia sẻ</span></div>
+                                    <div class="share-body">
+                                        <div class="share-host" id="share-host"></div>
+                                        <div class="share-title" id="share-title"></div>
+                                        <div class="share-desc" id="share-desc"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <h6 class="theme-section-title mt-4">Hình ảnh thương hiệu</h6>
+                        <div class="row g-3" id="brand-images"></div>
+                    </div>
+                </div>
+
                 <div class="card shadow-sm">
                     <div class="card-header text-white">
                         <h5 class="mb-0">Tuỳ chỉnh giao diện</h5>

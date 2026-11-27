@@ -21,6 +21,15 @@ export const DEFAULT_COLORS = {
   centerText: "#f3ffe1",
 };
 
+export const DEFAULT_BRANDING = {
+  siteName: "Vòng Quay May Mắn",
+  description: "Vòng quay may mắn cho sự kiện: quay thưởng công bằng, công bố người trúng và gửi email thông báo.",
+  themeColor: "#246d4b",
+  faviconId: null,
+  logoId: null,
+  shareImageId: null,
+};
+
 export const DEFAULT_TEMPLATES = {
   win: {
     subject: "🎉 Chúc mừng {ten} đã trúng {giai} - {su_kien}",
@@ -52,6 +61,8 @@ function defaultState() {
       colors: { ...DEFAULT_COLORS },
       images: { background: null, title: null, arrow: null, frame: null },
     },
+    // Thương hiệu: tên website, mô tả, favicon, logo, ảnh chia sẻ (chèn vào HTML ở worker.js)
+    branding: { ...DEFAULT_BRANDING },
     // Chế độ Party: âm thanh / hình nền / nút quay do admin tải lên để người chơi chọn
     party: {
       sounds: [], // { id, name, spinId, winId }
@@ -137,6 +148,7 @@ export class LuckyDrawStore extends DurableObject {
               images: { ...base.theme.images, ...(saved.theme?.images || {}) },
             },
             party: { ...base.party, ...(saved.party || {}) },
+            branding: { ...base.branding, ...(saved.branding || {}) },
             settings: {
               ...base.settings,
               ...(saved.settings || {}),
@@ -277,6 +289,10 @@ export class LuckyDrawStore extends DurableObject {
     return { ...s, prizes: this.prizesWithRemaining(), serverTime: Date.now() };
   }
 
+  async getBranding() {
+    return { ...(await this.load()).branding };
+  }
+
   // Cấu hình công khai cho trang /party/
   async getPartyConfig() {
     const p = (await this.load()).party;
@@ -373,6 +389,7 @@ export class LuckyDrawStore extends DurableObject {
       Object.values(s.theme.images).includes(id) ||
       s.prizes.some((p) => p.imageId === id) ||
       s.party.backgrounds.some((b) => b.imageId === id) ||
+      ["faviconId", "logoId", "shareImageId"].some((k) => s.branding[k] === id) ||
       s.party.buttons.some((b) => b.imageId === id) ||
       s.winners.some((w) => w.prize?.imageId === id);
     if (!used) await this.ctx.storage.delete("img:" + id);
@@ -724,6 +741,30 @@ export class LuckyDrawStore extends DurableObject {
         });
         if (!res.ok) fail(res.error);
         return { message: `Đã đồng bộ: ${s.participants.length} người tham dự, ${s.winners.length} người trúng` };
+      },
+
+      // ----- Thương hiệu -----
+      async saveBranding({ branding = {} }) {
+        const cur = this.state.branding;
+        if ("siteName" in branding) cur.siteName = cleanText(branding.siteName, 80) || DEFAULT_BRANDING.siteName;
+        if ("description" in branding) cur.description = cleanText(branding.description, 300);
+        if ("themeColor" in branding) cur.themeColor = isHexColor(branding.themeColor) ? branding.themeColor : DEFAULT_BRANDING.themeColor;
+        const removed = [];
+        for (const key of ["faviconId", "logoId", "shareImageId"]) {
+          if (!(key in branding)) continue;
+          const next = ID_RE.test(branding[key] || "") ? branding[key] : null;
+          if (cur[key] !== next) removed.push(cur[key]);
+          cur[key] = next;
+        }
+        for (const id of removed) await this.deleteImageIfUnused(id);
+        await this.save();
+      },
+
+      async resetBranding() {
+        const old = this.state.branding;
+        this.state.branding = { ...DEFAULT_BRANDING };
+        for (const id of [old.faviconId, old.logoId, old.shareImageId]) await this.deleteImageIfUnused(id);
+        await this.save();
       },
 
       // ----- Chế độ Party -----
