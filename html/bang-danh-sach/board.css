@@ -191,21 +191,7 @@ h1.main-title {
     font-size: 0.8rem;
 }
 
-.winner-list li.new {
-    animation: winner-new 2.5s ease;
-}
-
-@keyframes winner-new {
-    0% {
-        background: var(--gold);
-        transform: scale(1.08);
-    }
-
-    100% {
-        background: #f6fbf8;
-        transform: scale(1);
-    }
-}
+/* Người trúng mới: hiệu ứng do GSAP thực hiện (board.js) */
 
 /* Người tham dự: lưới nhiều cột */
 .participant-grid {

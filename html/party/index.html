@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#fdf6ec">
     <link rel="icon" href="/images/favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="/libs/fonts/baloo-2/baloo-2.css">
+    <link rel="stylesheet" href="/libs/fonts/roboto/roboto.css">
     <link rel="stylesheet" href="/libs/lucide/lucide.css">
     <link rel="stylesheet" href="/party/party.css">
     <title data-page="Vòng quay Party">Vòng quay Party</title>
@@ -14,14 +16,16 @@
 <body>
     <div class="party-app">
         <header class="party-top">
-            <div class="party-top-left">
-                <button type="button" class="icon-btn" id="btn-fullscreen" title="Toàn màn hình"
-                    aria-label="Toàn màn hình"><i class="li icon-maximize"></i></button>
+            <div class="party-tools">
+                <button type="button" class="icon-btn" id="btn-settings" title="Tuỳ chỉnh" aria-label="Tuỳ chỉnh"><i
+                        class="li icon-settings"></i></button>
                 <button type="button" class="icon-btn" id="btn-mute" title="Bật/tắt âm thanh"
                     aria-label="Bật/tắt âm thanh"><i class="li icon-volume-2"></i></button>
+                <button type="button" class="icon-btn" id="btn-fullscreen" title="Toàn màn hình"
+                    aria-label="Toàn màn hình"><i class="li icon-maximize"></i></button>
             </div>
-            <h1 class="party-title"><img data-brand-logo class="party-logo" alt="" hidden>Vòng quay Party</h1>
-            <div class="party-top-right"></div>
+            <h1 class="party-title"><img data-brand-logo class="party-logo" alt="" hidden><span id="party-title-text"
+                    class="party-title-text"></span></h1>
         </header>
 
         <main class="party-main">
@@ -29,13 +33,10 @@
                 <div class="party-wheel" id="party-wheel">
                     <svg class="party-wheel-svg" id="wheel-svg" viewBox="0 0 1000 1000" aria-hidden="true"></svg>
                     <button type="button" class="spin-btn" id="spin-btn" aria-label="Nhấn để xoay">
-                        <svg class="spin-btn-default" viewBox="0 0 200 250" aria-hidden="true">
+                        <svg class="spin-btn-default" id="spin-btn-default" viewBox="0 0 200 250" aria-hidden="true">
                             <path class="spin-btn-shape"
                                 d="M100 6 C108 30 122 52 140 72 A88 88 0 1 1 60 72 C78 52 92 30 100 6 Z" />
-                            <text x="100" y="150" class="spin-btn-text">
-                                <tspan x="100" dy="-12">Nhấn để</tspan>
-                                <tspan x="100" dy="34">xoay</tspan>
-                            </text>
+                            <text class="spin-btn-text" id="spin-btn-text" x="100" y="150"></text>
                         </svg>
                         <img class="spin-btn-image" id="spin-btn-image" alt="Nhấn để xoay" hidden>
                     </button>
@@ -62,17 +63,98 @@
             <aside class="names-panel">
                 <div class="names-header">
                     <h2><i class="li icon-list"></i> Danh sách <span class="count" id="name-count">0</span></h2>
-                    <div class="names-actions">
-                        <button type="button" class="link-btn" id="btn-sample">Tên mẫu</button>
-                        <button type="button" class="link-btn danger" id="btn-clear">Xoá hết</button>
-                    </div>
+                    <button type="button" class="link-btn danger" id="btn-clear">Xoá hết</button>
+                </div>
+                <div class="chip-row">
+                    <span class="chip-label">Mẫu nhanh:</span>
+                    <button type="button" class="chip" data-sample="names"><i class="li icon-users"></i> Tên</button>
+                    <button type="button" class="chip" data-sample="party"><i class="li icon-party-popper"></i> Trò
+                        chơi tiệc</button>
+                    <button type="button" class="chip" data-sample="yesno"><i class="li icon-circle-help"></i>
+                        Có/Không</button>
                 </div>
                 <textarea id="names-input" spellcheck="false" placeholder="Nhập tên, mỗi dòng một tên…&#10;Ví dụ:&#10;An&#10;Bình&#10;Chi"></textarea>
-                <p class="names-hint">Mỗi dòng là một ô trên vòng quay. Danh sách được lưu trên máy này.</p>
+                <p class="names-hint">Mỗi dòng là một ô trên vòng quay. Danh sách và tuỳ chỉnh được lưu trên máy này.</p>
             </aside>
         </main>
     </div>
 
+    <!-- Bảng tuỳ chỉnh (Material 3: bottom sheet trên điện thoại, side sheet trên máy tính) -->
+    <div class="sheet-scrim" id="sheet-scrim" hidden></div>
+    <aside class="sheet" id="settings" role="dialog" aria-modal="true" aria-labelledby="settings-title" hidden>
+        <div class="sheet-handle"></div>
+        <div class="sheet-header">
+            <h2 id="settings-title">Tuỳ chỉnh</h2>
+            <button type="button" class="icon-btn flat" id="settings-close" aria-label="Đóng"><i
+                    class="li icon-x"></i></button>
+        </div>
+        <div class="sheet-body">
+            <div class="field">
+                <label class="field-label" for="set-title">Tiêu đề</label>
+                <div class="text-field"><input type="text" id="set-title" maxlength="40" autocomplete="off"></div>
+                <div class="field-hint">2 chữ cuối được tô vàng nổi bật.</div>
+            </div>
+
+            <div class="field">
+                <label class="field-label" for="set-button">Chữ trên nút quay</label>
+                <div class="text-field"><input type="text" id="set-button" maxlength="24" autocomplete="off"></div>
+                <div class="chip-row compact">
+                    <button type="button" class="chip" data-button-text="Nhấn để xoay">Nhấn để xoay</button>
+                    <button type="button" class="chip" data-button-text="Quay">Quay</button>
+                    <button type="button" class="chip" data-button-text="Spin">Spin</button>
+                    <button type="button" class="chip" data-button-text="Chạm để quay">Chạm để quay</button>
+                </div>
+            </div>
+
+            <div class="field">
+                <div class="field-row">
+                    <label class="field-label" for="set-duration">Thời gian xoay</label>
+                    <div class="num-field"><input type="number" id="set-duration-num" min="2" max="30" step="0.5"
+                            aria-label="Thời gian xoay (giây)"><span>giây</span></div>
+                </div>
+                <input type="range" class="slider" id="set-duration" min="2" max="30" step="0.5">
+                <div class="slider-scale"><span>Nhanh gọn</span><span>Hồi hộp</span></div>
+            </div>
+
+            <div class="field">
+                <div class="field-row">
+                    <label class="field-label" for="set-speed">Tốc độ xoay</label>
+                    <div class="num-field"><input type="number" id="set-speed-num" min="1" max="10" step="1"
+                            aria-label="Tốc độ xoay (1-10)"><span>/10</span></div>
+                </div>
+                <input type="range" class="slider" id="set-speed" min="1" max="10" step="1">
+                <div class="slider-scale"><span>Chậm</span><span id="speed-turns"></span><span>Rất nhanh</span></div>
+            </div>
+
+            <div class="field">
+                <div class="field-row">
+                    <label class="field-label" for="set-blink">Tốc độ chớp tên trúng</label>
+                    <div class="num-field"><input type="number" id="set-blink-num" min="0" max="10" step="1"
+                            aria-label="Tốc độ chớp (0-10)"><span>/10</span></div>
+                </div>
+                <input type="range" class="slider" id="set-blink" min="0" max="10" step="1">
+                <div class="slider-scale"><span>Không chớp</span><span>Rất nhanh</span></div>
+                <div class="blink-demo"><span id="blink-demo">Tên trúng</span></div>
+            </div>
+
+            <div class="field">
+                <label class="switch-row">
+                    <span>
+                        <span class="field-label">Tự xoá tên vừa trúng</span>
+                        <span class="field-hint">Ô vừa trúng tự bị xoá khi bấm quay lượt tiếp theo.</span>
+                    </span>
+                    <input type="checkbox" class="switch" id="set-autoremove">
+                </label>
+            </div>
+        </div>
+        <div class="sheet-footer">
+            <button type="button" class="btn-text" id="settings-reset"><i class="li icon-rotate-ccw"></i> Mặc
+                định</button>
+            <button type="button" class="btn-filled" id="settings-done">Xong</button>
+        </div>
+    </aside>
+
+    <script src="/libs/gsap.min.js"></script>
     <script src="/party/party.js"></script>
 </body>
 

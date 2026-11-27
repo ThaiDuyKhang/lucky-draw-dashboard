@@ -15,7 +15,7 @@ $(document).ready(function () {
       FADE_OUT_DURATION: 2000,
       MODAL_DELAY: 2000, // 2000
       EXTRA_SPINS: 3,
-      EASING: "cubic-bezier(0.17, 0.67, 0.35, 0.96)",
+      EASING: "power3.out", // kiểu chậm dần của GSAP (https://gsap.com/docs/v3/Eases)
     },
 
     WHEEL: {
@@ -151,6 +151,15 @@ $(document).ready(function () {
     }
     renderWinnersModal();
     bootstrap.Modal.getOrCreateInstance(document.getElementById("winnersModal")).show();
+    gsap.from("#winners-modal-body .prize-group, #winners-modal-body .winner-list li", {
+      y: 16,
+      autoAlpha: 0,
+      duration: 0.4,
+      stagger: 0.03,
+      ease: "power2.out",
+      delay: 0.15,
+      clearProps: "all",
+    });
   }
 
   // Giống khung "Người trúng thưởng" ở trang /bang-danh-sach/
@@ -194,7 +203,9 @@ $(document).ready(function () {
 
   function showToast(message) {
     const t = $('<div class="wheel-toast"></div>').text(message).appendTo("body");
-    setTimeout(() => t.fadeOut(400, () => t.remove()), 4000);
+    gsap.timeline({ onComplete: () => t.remove() })
+      .from(t[0], { y: 30, autoAlpha: 0, duration: 0.35, ease: "back.out(2)" })
+      .to(t[0], { y: 20, autoAlpha: 0, duration: 0.35, ease: "power2.in" }, "+=3.6");
   }
 
   function showWheelMessage(message) {
@@ -253,20 +264,18 @@ $(document).ready(function () {
     sound.play().catch((err) => console.log("Victory audio play failed:", err));
   }
 
+  // Nhỏ dần âm lượng bằng GSAP (duration tính bằng ms)
   function fadeOutAudio(audio, duration) {
-    const interval = 50;
-    const volumeStep = audio.volume / (duration / interval);
-
-    const fadeOut = setInterval(() => {
-      if (audio.volume > volumeStep) {
-        audio.volume -= volumeStep;
-      } else {
-        audio.volume = 0;
+    gsap.killTweensOf(audio);
+    gsap.to(audio, {
+      volume: 0,
+      duration: duration / 1000,
+      ease: "none",
+      onComplete() {
         audio.pause();
         audio.currentTime = 0;
-        clearInterval(fadeOut);
-      }
-    }, interval);
+      },
+    });
   }
 
   // Số ngẫu nhiên nguyên trong [0, max) - ưu tiên crypto.getRandomValues
@@ -437,34 +446,39 @@ $(document).ready(function () {
 
     const segmentAngle = 360 / segments.length;
     const segmentMiddle = randomIndex * segmentAngle + segmentAngle / 2;
-    const spinAngle = CONFIG.TIMING.EXTRA_SPINS * 360 + (360 - segmentMiddle);
+    const finalAngle = (360 - segmentMiddle) % 360;
+    const wheel = $(".custom-wheel")[0];
+    const current = Number(gsap.getProperty(wheel, "rotation")) || 0;
+    // Quay thêm ít nhất EXTRA_SPINS vòng rồi dừng đúng giữa ô người trúng
+    const target =
+      current - (((current % 360) + 360) % 360) + CONFIG.TIMING.EXTRA_SPINS * 360 + finalAngle + 360;
 
-    $(".custom-wheel").css({
-      transform: `rotate(${spinAngle}deg)`,
-      transition: `transform ${CONFIG.TIMING.SPIN_DURATION / 1000}s ${
-        CONFIG.TIMING.EASING
-      }`,
+    let lastSlice = -1;
+    const pulse = gsap.to(".spin-button-image", { scale: 1.06, duration: 0.5, repeat: -1, yoyo: true, ease: "sine.inOut" });
+    gsap.to(wheel, {
+      rotation: target,
+      duration: CONFIG.TIMING.SPIN_DURATION / 1000,
+      ease: CONFIG.TIMING.EASING,
+      onUpdate() {
+        // Mũi tên rung nhẹ mỗi khi lướt qua 1 ô
+        const deg = ((Number(gsap.getProperty(wheel, "rotation")) % 360) + 360) % 360;
+        const slice = Math.floor(((360 - deg) % 360) / segmentAngle);
+        if (slice !== lastSlice) {
+          lastSlice = slice;
+          gsap.fromTo(".spin-button-image", { rotation: -6 }, { rotation: 0, duration: 0.25, ease: "power2.out", overwrite: "auto" });
+        }
+      },
+      onComplete() {
+        isSpinning = false;
+        $("#ez-spin-btn").css("pointer-events", "auto");
+        $(".spin-button-wrapper").removeClass("spinning");
+        stopStarsAnimation();
+        pulse.kill();
+        gsap.to(".spin-button-image", { scale: 1, rotation: 0, duration: 0.3, ease: "power2.out" });
+        gsap.set(wheel, { rotation: finalAngle }); // giữ góc nhỏ cho lần quay sau
+        gsap.delayedCall(CONFIG.TIMING.MODAL_DELAY / 1000, showSpinResult);
+      },
     });
-
-    setTimeout(() => {
-      isSpinning = false;
-      $("#ez-spin-btn").css("pointer-events", "auto");
-      $(".spin-button-wrapper").removeClass("spinning");
-
-      stopStarsAnimation();
-
-      const finalAngle = (360 - segmentMiddle) % 360;
-      $(".custom-wheel").css({
-        transform: `rotate(${finalAngle}deg)`,
-        transition: "none",
-      });
-
-      $(".custom-wheel")[0].offsetHeight; // Force reflow
-
-      setTimeout(() => {
-        showSpinResult();
-      }, CONFIG.TIMING.MODAL_DELAY);
-    }, CONFIG.TIMING.SPIN_DURATION);
   }
 
   function showSpinResult() {
@@ -959,13 +973,12 @@ $(document).ready(function () {
       }, 100);
 
       setTimeout(() => {
-        $("#prize-container").css("visibility", "visible");
-        $("#prize-container").animate({ opacity: 1 }, 200);
+        gsap.fromTo("#prize-container", { autoAlpha: 0, y: 20, scale: 0.9 }, { autoAlpha: 1, y: 0, scale: 1, duration: 0.5, ease: "back.out(2)" });
       }, animDuration - 500); // Đợi animation hoàn thành + 0.5s
 
       setTimeout(() => {
-        $("#modal-buttons").css("visibility", "visible");
-        $("#modal-buttons").animate({ opacity: 1 }, 500);
+        gsap.fromTo("#modal-buttons > *", { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, duration: 0.45, stagger: 0.08, ease: "power2.out" });
+        gsap.set("#modal-buttons", { autoAlpha: 1 });
       }, animDuration + 1500); // Đợi thêm 1s sau khi tên xuất hiện
     } else {
       // Fallback: không có hiệu ứng chữ -> hiện ngay lời chúc, tên và nút
