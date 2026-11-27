@@ -39,6 +39,13 @@
                         </svg>
                         <img class="spin-btn-image" id="spin-btn-image" alt="Nhấn để xoay" hidden>
                     </button>
+                    <div class="result-card" id="result" role="status" aria-live="polite" hidden>
+                        <div class="result-name" id="result-name"></div>
+                        <div class="result-bar">
+                            <button type="button" id="result-remove">Xoá tên</button>
+                            <button type="button" id="result-close">Đóng</button>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="party-toolbar">
@@ -66,25 +73,6 @@
         </main>
     </div>
 
-    <!-- Kết quả -->
-    <div class="result-overlay" id="result" hidden>
-        <div id="confetti" class="confetti"></div>
-        <div class="result-card" role="dialog" aria-modal="true" aria-labelledby="result-name">
-            <button type="button" class="result-close" id="result-close" aria-label="Đóng"><i
-                    class="li icon-x"></i></button>
-            <div class="result-label"><i class="li icon-party-popper"></i> Người được chọn</div>
-            <div class="result-name" id="result-name"></div>
-            <div class="result-actions">
-                <button type="button" class="btn-soft" id="result-remove"><i class="li icon-trash-2"></i> Xoá tên
-                    này</button>
-                <button type="button" class="btn-main" id="result-again"><i class="li icon-rotate-ccw"></i> Quay
-                    tiếp</button>
-            </div>
-        </div>
-    </div>
-
-    <script src="/libs/lottie.min.js"></script>
-    <script src="/images/confetti.js"></script>
     <script src="/party/party.js"></script>
 </body>
 
